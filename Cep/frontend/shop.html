@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Medicine Shop - MedAdvisor</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <nav class="navbar"><div class="navbar-inner">
+    <a href="index.html" class="navbar-brand"><span class="logo">🏥</span><h1>MedAdvisor</h1></a>
+    <div class="navbar-links" id="navLinks">
+      <a href="index.html">Home</a><a href="shop.html" class="active">Medicine Shop</a><a href="tracking.html">Track Order</a>
+      <div id="navAuth"><a href="login.html" class="btn btn-outline btn-sm">Login</a></div>
+      <div id="navUser" class="nav-user hidden">
+        <a href="dashboard.html">Dashboard</a>
+        <a href="cart.html" class="nav-cart">🛒<span class="cart-badge" id="cartBadge">0</span></a>
+        <a href="#" onclick="logout()" style="color:var(--danger)">Logout</a>
+      </div>
+    </div>
+  </div></nav>
+
+  <div class="container" style="padding-top:32px;padding-bottom:60px">
+    <div class="section-title"><h2>Medicine Shop</h2><p>Browse our catalog of safe, over-the-counter medicines</p></div>
+
+    <div class="shop-toolbar">
+      <div class="search-box">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="searchInput" placeholder="Search medicines..." oninput="filterMedicines()">
+      </div>
+      <button class="filter-btn active" onclick="filterCategory(this,'all')">All</button>
+      <button class="filter-btn" onclick="filterCategory(this,'Pain Relief')">Pain Relief</button>
+      <button class="filter-btn" onclick="filterCategory(this,'Allergy')">Allergy</button>
+      <button class="filter-btn" onclick="filterCategory(this,'Digestive')">Digestive</button>
+      <button class="filter-btn" onclick="filterCategory(this,'Cough & Cold')">Cough & Cold</button>
+      <button class="filter-btn" onclick="filterCategory(this,'Vitamins')">Vitamins</button>
+      <button class="filter-btn" onclick="filterCategory(this,'Skin Care')">Skin Care</button>
+      <button class="filter-btn" onclick="filterCategory(this,'Sleep & Wellness')">Sleep</button>
+    </div>
+
+    <div class="medicines-grid" id="medicinesGrid">
+      <div class="page-loader"><div class="loader"></div></div>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+  <script src="js/app.js"></script>
+  <script src="js/shop.js"></script>
+</body>
+</html>

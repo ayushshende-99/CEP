@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Smart Medical Advisor - AI-powered health guidance, medicine recommendations, and online pharmacy. Get instant symptom analysis.">
+  <title>MedAdvisor - Smart Medical Advisor & Pharmacy</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <!-- Navbar -->
+  <nav class="navbar" id="navbar">
+    <div class="navbar-inner">
+      <a href="index.html" class="navbar-brand">
+        <span class="logo">🏥</span>
+        <h1>MedAdvisor</h1>
+      </a>
+      <button class="hamburger" id="hamburgerBtn" onclick="toggleMenu()">☰</button>
+      <div class="navbar-links" id="navLinks">
+        <a href="index.html" class="active">Home</a>
+        <a href="shop.html">Medicine Shop</a>
+        <a href="tracking.html">Track Order</a>
+        <div id="navAuth">
+          <a href="login.html" class="btn btn-outline btn-sm">Login</a>
+          <a href="register.html" class="btn btn-primary btn-sm">Sign Up</a>
+        </div>
+        <div id="navUser" class="nav-user hidden">
+          <a href="dashboard.html">Dashboard</a>
+          <a href="cart.html" class="nav-cart">🛒<span class="cart-badge" id="cartBadge">0</span></a>
+          <div class="nav-avatar" id="navAvatar">U</div>
+          <a href="#" onclick="logout()" style="color:var(--danger)">Logout</a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="hero-content">
+      <div class="hero-text">
+        <h1>Your Smart <span>Health Advisor</span> & Pharmacy</h1>
+        <p>Describe your symptoms and get AI-powered health guidance, medicine recommendations with dosage information, and order medicines online — all in one place.</p>
+        <div class="hero-buttons">
+          <a href="dashboard.html" class="btn btn-primary btn-lg">💬 Get Health Advice</a>
+          <a href="shop.html" class="btn btn-outline btn-lg">🛒 Browse Medicines</a>
+        </div>
+        <div class="disclaimer-box mt-3" style="max-width:500px">
+          <span>⚠️</span>
+          <span>This is an AI-assisted platform. Always consult a qualified doctor before taking any medication.</span>
+        </div>
+      </div>
+      <div class="hero-visual">
+        <div class="hero-illustration">🩺</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="features">
+    <div class="container">
+      <div class="section-title">
+        <h2>How MedAdvisor Helps You</h2>
+        <p>Powered by intelligent agents working together to provide comprehensive health support</p>
+      </div>
+      <div class="features-grid">
+        <div class="feature-card">
+          <span class="feature-icon">🤖</span>
+          <h3>AI Symptom Analysis</h3>
+          <p>Describe your symptoms in natural language. Our Medical AI Agent analyzes them and suggests possible conditions with safe OTC medicine options.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">💊</span>
+          <h3>Medicine Recommendations</h3>
+          <p>Get detailed medicine suggestions including generic names, dosage instructions, side effects, and important precautions for safe usage.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">🛒</span>
+          <h3>Online Pharmacy</h3>
+          <p>Browse our curated catalog of OTC medicines. Add to cart, checkout, and get medicines delivered to your doorstep with our E-commerce Agent.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">📦</span>
+          <h3>Order Tracking</h3>
+          <p>Track your medicine orders in real-time with our Tracking Agent. Get status updates from order placement to delivery at your door.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">🔒</span>
+          <h3>Secure & Private</h3>
+          <p>Your health data is protected with JWT authentication and secure sessions. We prioritize your privacy and data security at every step.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">🏠</span>
+          <h3>Home Remedies</h3>
+          <p>Along with medicines, get natural home remedy suggestions and know when it's time to see a doctor for professional medical help.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How It Works -->
+  <section class="features" style="background:linear-gradient(135deg,#EBF4FF,#E0FFF8)">
+    <div class="container">
+      <div class="section-title">
+        <h2>How It Works</h2>
+        <p>Three simple steps to get health guidance and medicines</p>
+      </div>
+      <div class="features-grid" style="grid-template-columns:repeat(3,1fr)">
+        <div class="feature-card" style="background:linear-gradient(135deg,#fff,#EBF4FF)">
+          <span class="feature-icon">1️⃣</span>
+          <h3>Describe Symptoms</h3>
+          <p>Tell our AI chatbot about your symptoms in plain language. e.g., "I have a headache and fever"</p>
+        </div>
+        <div class="feature-card" style="background:linear-gradient(135deg,#fff,#E0FFF8)">
+          <span class="feature-icon">2️⃣</span>
+          <h3>Get Recommendations</h3>
+          <p>Receive AI-generated suggestions for medicines, dosage, home remedies, and when to see a doctor.</p>
+        </div>
+        <div class="feature-card" style="background:linear-gradient(135deg,#fff,#FEF3C7)">
+          <span class="feature-icon">3️⃣</span>
+          <h3>Order & Track</h3>
+          <p>Order suggested medicines from our shop, pay at checkout, and track your delivery in real-time.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <span class="logo">🏥</span>
+          <h3>MedAdvisor</h3>
+          <p>AI-powered health guidance and online pharmacy. Get symptom analysis, medicine recommendations, and door-step delivery.</p>
+        </div>
+        <div class="footer-col">
+          <h4>Quick Links</h4>
+          <a href="index.html">Home</a>
+          <a href="shop.html">Medicine Shop</a>
+          <a href="tracking.html">Track Order</a>
+          <a href="dashboard.html">Health Chat</a>
+        </div>
+        <div class="footer-col">
+          <h4>Account</h4>
+          <a href="login.html">Login</a>
+          <a href="register.html">Sign Up</a>
+          <a href="dashboard.html">Dashboard</a>
+        </div>
+        <div class="footer-col">
+          <h4>Legal</h4>
+          <a href="#">Privacy Policy</a>
+          <a href="#">Terms of Service</a>
+          <a href="#">Medical Disclaimer</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>⚠️ Disclaimer: MedAdvisor provides AI-generated health suggestions only. This is NOT a substitute for professional medical advice. Always consult a doctor.</p>
+        <p style="margin-top:8px">© 2024 MedAdvisor. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+
+  <div class="toast-container" id="toastContainer"></div>
+  <script src="js/app.js"></script>
+</body>
+</html>

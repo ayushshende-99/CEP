@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard - MedAdvisor</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div class="dashboard">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-brand"><span class="logo">🏥</span><h2>Admin Panel</h2></div>
+      <nav class="sidebar-nav">
+        <a href="#" class="active" onclick="showAdminSection('overview')"><span class="nav-icon">📊</span> Overview</a>
+        <a href="#" onclick="showAdminSection('users')"><span class="nav-icon">👥</span> Users</a>
+        <a href="#" onclick="showAdminSection('orders')"><span class="nav-icon">📦</span> Orders</a>
+        <a href="#" onclick="showAdminSection('medicines')"><span class="nav-icon">💊</span> Medicines</a>
+        <a href="index.html"><span class="nav-icon">🏠</span> Back to Site</a>
+      </nav>
+      <div class="sidebar-footer">
+        <button class="btn btn-sm btn-danger w-full" onclick="logout()">Logout</button>
+      </div>
+    </aside>
+    <main class="main-content">
+      <button class="hamburger" onclick="toggleSidebar()" style="position:fixed;top:16px;left:16px;z-index:60">☰</button>
+
+      <!-- Overview -->
+      <div id="overviewSection">
+        <div class="main-header"><h2>📊 Dashboard Overview</h2></div>
+        <div class="stats-grid" id="statsGrid"></div>
+        <div class="card">
+          <h3 style="font-weight:700;margin-bottom:16px">Recent Orders</h3>
+          <div style="overflow-x:auto"><table class="data-table" id="recentOrdersTable"><thead><tr>
+            <th>Order ID</th><th>Customer</th><th>Items</th><th>Total</th><th>Status</th><th>Date</th>
+          </tr></thead><tbody></tbody></table></div>
+        </div>
+      </div>
+
+      <!-- Users -->
+      <div id="usersSection" class="hidden">
+        <div class="main-header"><h2>👥 Registered Users</h2></div>
+        <div class="card"><div style="overflow-x:auto"><table class="data-table" id="usersTable"><thead><tr>
+          <th>ID</th><th>Name</th><th>Email</th><th>Joined</th>
+        </tr></thead><tbody></tbody></table></div></div>
+      </div>
+
+      <!-- Orders -->
+      <div id="adminOrdersSection" class="hidden">
+        <div class="main-header"><h2>📦 All Orders</h2>
+          <select class="form-input" style="width:auto" id="orderStatusFilter" onchange="loadAdminOrders()">
+            <option value="">All Statuses</option>
+            <option>Ordered</option><option>Confirmed</option><option>Packed</option>
+            <option>Shipped</option><option>Out for Delivery</option><option>Delivered</option>
+          </select>
+        </div>
+        <div class="card"><div style="overflow-x:auto"><table class="data-table" id="adminOrdersTable"><thead><tr>
+          <th>ID</th><th>Customer</th><th>Tracking</th><th>Total</th><th>Status</th><th>Actions</th>
+        </tr></thead><tbody></tbody></table></div></div>
+      </div>
+
+      <!-- Medicines -->
+      <div id="medicinesSection" class="hidden">
+        <div class="main-header"><h2>💊 Medicine Inventory</h2>
+          <button class="btn btn-primary btn-sm" onclick="showAddMedicineModal()">+ Add Medicine</button>
+        </div>
+        <div class="card"><div style="overflow-x:auto"><table class="data-table" id="medicinesTable"><thead><tr>
+          <th>ID</th><th>Name</th><th>Category</th><th>Price</th><th>Stock</th><th>Actions</th>
+        </tr></thead><tbody></tbody></table></div></div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Add Medicine Modal -->
+  <div id="addMedicineModal" class="modal-overlay hidden">
+    <div class="modal" style="position:relative">
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+      <h3>Add New Medicine</h3>
+      <form onsubmit="addMedicine(event)">
+        <div class="form-group"><label>Name</label><input type="text" id="medName" class="form-input" required></div>
+        <div class="form-group"><label>Generic Name</label><input type="text" id="medGeneric" class="form-input" required></div>
+        <div class="form-group"><label>Category</label>
+          <select id="medCategory" class="form-input">
+            <option>Pain Relief</option><option>Allergy</option><option>Digestive</option>
+            <option>Cough & Cold</option><option>Vitamins</option><option>Skin Care</option><option>Sleep & Wellness</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Description</label><input type="text" id="medDesc" class="form-input"></div>
+        <div class="form-group"><label>Dosage</label><input type="text" id="medDosage" class="form-input"></div>
+        <div class="form-group"><label>Price ($)</label><input type="number" id="medPrice" class="form-input" step="0.01" required></div>
+        <div class="form-group"><label>Stock</label><input type="number" id="medStock" class="form-input" required></div>
+        <button type="submit" class="btn btn-primary w-full">Add Medicine</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+  <script src="js/app.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>
