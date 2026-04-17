@@ -30,7 +30,7 @@ def analyze_symptoms(current_user):
             'disclaimer': medical_agent.DISCLAIMER
         }), 400
 
-    result = medical_agent.analyze_symptoms(data['symptoms'])
+    result = medical_agent.analyze_symptoms(data['symptoms'], user_id=current_user.id)
     return jsonify(result)
 
 

@@ -21,21 +21,14 @@
   </div></nav>
 
   <div class="container" style="padding-top:32px;padding-bottom:60px">
-    <div class="section-title"><h2>Medicine Shop</h2><p>Browse our catalog of safe, over-the-counter medicines</p></div>
+    <div class="section-title"><h2>Medicine Shop</h2><p>Browse the dataset-backed pharmacy catalog and search by medicine name or category</p></div>
 
     <div class="shop-toolbar">
       <div class="search-box">
         <span class="search-icon">🔍</span>
         <input type="text" id="searchInput" placeholder="Search medicines..." oninput="filterMedicines()">
       </div>
-      <button class="filter-btn active" onclick="filterCategory(this,'all')">All</button>
-      <button class="filter-btn" onclick="filterCategory(this,'Pain Relief')">Pain Relief</button>
-      <button class="filter-btn" onclick="filterCategory(this,'Allergy')">Allergy</button>
-      <button class="filter-btn" onclick="filterCategory(this,'Digestive')">Digestive</button>
-      <button class="filter-btn" onclick="filterCategory(this,'Cough & Cold')">Cough & Cold</button>
-      <button class="filter-btn" onclick="filterCategory(this,'Vitamins')">Vitamins</button>
-      <button class="filter-btn" onclick="filterCategory(this,'Skin Care')">Skin Care</button>
-      <button class="filter-btn" onclick="filterCategory(this,'Sleep & Wellness')">Sleep</button>
+      <div id="categoryFilters" style="display:flex;flex-wrap:wrap;gap:10px"></div>
     </div>
 
     <div class="medicines-grid" id="medicinesGrid">

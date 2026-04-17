@@ -137,7 +137,7 @@ class DiseasePredictor:
         data_dir = base_dir / "data"
         self.dataset_path_override = Path(dataset_path) if dataset_path else None
         self.local_dataset_path = data_dir / "Final_Augmented_dataset_Diseases_and_Symptoms.csv"
-        self.download_dataset_path = Path("/Users/rutujabarde/Downloads/Final_Augmented_dataset_Diseases_and_Symptoms.csv")
+        self.download_dataset_path = Path.home() / "Downloads" / "Final_Augmented_dataset_Diseases_and_Symptoms.csv"
         self.cache_path = Path(cache_path) if cache_path else data_dir / "disease_prediction_model.pkl"
         self.top_k = top_k
 

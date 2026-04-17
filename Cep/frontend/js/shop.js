@@ -74,7 +74,34 @@ function semanticMedicineScore(medicine, query) {
 
 async function loadMedicines() {
   const data = await apiCall('/medicines/');
-  if (data?.medicines) { allMedicines = data.medicines; renderMedicines(allMedicines); }
+  if (data?.medicines) {
+    allMedicines = data.medicines;
+    renderCategoryFilters();
+    renderMedicines(allMedicines);
+  }
+}
+
+function renderCategoryFilters() {
+  const container = document.getElementById('categoryFilters');
+  if (!container) return;
+
+  const categories = Array.from(
+    new Set(
+      allMedicines
+        .map(medicine => medicine.category)
+        .filter(Boolean)
+    )
+  ).sort((a, b) => a.localeCompare(b));
+
+  const filters = ['all', ...categories];
+  container.innerHTML = filters.map(category => `
+    <button
+      class="filter-btn ${currentCategory === category ? 'active' : ''}"
+      onclick="filterCategory('${category.replace(/'/g, "\\'")}')"
+    >
+      ${category === 'all' ? 'All' : category}
+    </button>
+  `).join('');
 }
 
 function renderMedicines(medicines) {
@@ -91,7 +118,7 @@ function renderMedicines(medicines) {
       <p class="med-generic">${m.generic_name}</p>
       <p class="med-desc">${m.description || ''}</p>
       <div class="flex justify-between items-center">
-        <span class="med-price">$${m.price.toFixed(2)}</span>
+        <span class="med-price">₹${m.price.toFixed(2)}</span>
         <span class="med-stock ${stockClass}">${stockText}</span>
       </div>
       <div class="card-actions">
@@ -118,9 +145,8 @@ function filterMedicines() {
   renderMedicines(filtered);
 }
 
-function filterCategory(btn, cat) {
+function filterCategory(cat) {
   currentCategory = cat;
-  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
+  renderCategoryFilters();
   filterMedicines();
 }

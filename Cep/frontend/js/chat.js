@@ -15,9 +15,9 @@ const QUICK_REPLIES = [
 ];
 
 const ORDER_QUICK_REPLIES = [
-  "I want to order Paracetamol",
-  "Buy NORSAN Omega-3 Total",
-  "I need Omeprazole"
+  "I want to order Paracetamol 500mg",
+  "Buy Cetirizine 200mg",
+  "I need Omeprazole 200mg"
 ];
 
 // ===== Voice Input (Speech-to-Text) =====
@@ -228,7 +228,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="message-bubble">
           ${greeting}, <strong>${firstName}</strong>! 👋😊<br><br>
           I'm your friendly <strong>MedAdvisor AI</strong> — here to help you feel better!<br><br>
-          Tell me what's bothering you in your own words, and I'll suggest safe remedies, dosage info, and home tips.<br><br>
+          Tell me what's bothering you in your own words, and I'll run your symptoms through the trained disease model, then suggest medicines from the loaded catalog.<br><br>
           🛒 <strong>You can also order medicines directly!</strong> Just say something like "I want to order Paracetamol".<br><br>
           💡 <em>Try tapping a suggestion below, typing, or click 🎤 to speak!</em>
         </div>

@@ -5,7 +5,7 @@ AI-powered health guidance and online pharmacy web application built with a mult
 ## Features
 
 - **🤖 AI Symptom Analysis** - Describe symptoms in natural language to get likely disease predictions and medicine suggestions
-- **💊 Online Pharmacy** - Browse 18+ medicines across 7 categories with search and filters
+- **💊 Online Pharmacy** - Browse a dataset-backed pharmacy catalog with automatic categories, search, and filters
 - **🛒 Cart & Checkout** - Add to cart, simulated payment, and order placement
 - **📦 Order Tracking** - Real-time order status with visual timeline (Ordered → Confirmed → Packed → Shipped → Out for Delivery → Delivered)
 - **🔒 JWT Authentication** - Secure signup/login system
@@ -19,7 +19,7 @@ AI-powered health guidance and online pharmacy web application built with a mult
 | Backend | Flask (Python) |
 | Database | SQLite (via SQLAlchemy) |
 | Auth | JWT (PyJWT) |
-| AI Engine | Dataset-trained Bernoulli Naive Bayes disease prediction |
+| AI Engine | Dataset-trained Bernoulli Naive Bayes disease prediction + dataset-driven medicine catalog |
 
 ## Project Structure
 
@@ -31,10 +31,11 @@ Cep/
 │   ├── models.py             # SQLAlchemy models
 │   ├── requirements.txt      # Python dependencies
 │   ├── agents/
-│   │   ├── medical_ai.py     # Medical AI Agent (12+ conditions)
+│   │   ├── medical_ai.py     # Medical AI Agent powered by the trained disease model
 │   │   ├── ecommerce.py      # E-commerce Agent
 │   │   ├── tracking.py       # Tracking Agent
 │   │   └── admin.py          # Admin Agent
+│   ├── catalog_loader.py     # Medicine CSV loader and catalog normalizer
 │   └── routes/
 │       ├── auth.py           # Auth routes (JWT)
 │       ├── medical.py        # Symptom analysis routes
@@ -129,9 +130,12 @@ python app.py
 ## ML Dataset Setup
 
 - The disease predictor trains from `Final_Augmented_dataset_Diseases_and_Symptoms.csv`.
+- The pharmacy catalog loads from `medicine_dataset_with_price.csv` instead of the old `medicine_master.csv`.
 - Medicine recommendations are enriched from `medical_question_answer_dataset_50000.csv`.
-- By default it looks in `Cep/backend/data/` first, then falls back to `/Users/rutujabarde/Downloads/Final_Augmented_dataset_Diseases_and_Symptoms.csv`.
-- For medicine recommendation data, it looks in `Cep/backend/data/` first, then falls back to `/Users/rutujabarde/Downloads/medical_question_answer_dataset_50000.csv`.
+- By default the disease dataset is resolved from `Cep/backend/data/` first, then `~/Downloads/Final_Augmented_dataset_Diseases_and_Symptoms.csv`.
+- By default the medicine catalog dataset is resolved from `Cep/backend/data/` first, then `~/Downloads/medicine_dataset_with_price.csv`.
+- For medicine recommendation data, it looks in `Cep/backend/data/` first, then falls back to `~/Downloads/medical_question_answer_dataset_50000.csv`.
 - You can also set `MEDICAL_DATASET_PATH` to point to the dataset explicitly.
+- You can set `MEDICINE_DATASET_PATH` to point to the medicine catalog dataset explicitly.
 - You can set `MEDICAL_QA_DATASET_PATH` to point to the medicine recommendation dataset explicitly.
 - The trained model is cached automatically in `Cep/backend/data/disease_prediction_model.pkl` after the first run.

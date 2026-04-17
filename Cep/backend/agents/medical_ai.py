@@ -64,6 +64,37 @@ THANK_KEYWORDS = ["thank", "thanks", "thx", "appreciate", "helpful", "great help
 BYE_KEYWORDS = ["bye", "goodbye", "see you", "take care", "later", "goodnight"]
 HELP_KEYWORDS = ["help", "what can you do", "how does this work", "what do you do", "how to use"]
 FEELING_KEYWORDS = ["not feeling well", "feel sick", "feeling bad", "unwell", "not well", "feel terrible", "feeling awful", "feel awful"]
+FOLLOW_UP_MEDICINE_PHRASES = [
+    "give medicine for it",
+    "give medicine for this",
+    "give medicine for that",
+    "medicine for it",
+    "medicine for this",
+    "medicine for that",
+    "show medicine for it",
+    "show medicines for it",
+    "what medicine should i take",
+    "what medicines should i take",
+    "what should i take for it",
+    "what should i take for this",
+    "what should i take for that",
+    "suggest medicine for it",
+    "suggest medicines for it",
+]
+FOLLOW_UP_REFERENCE_TOKENS = {"it", "this", "that", "those", "these"}
+FOLLOW_UP_MEDICINE_TOKENS = {
+    "medicine",
+    "medicines",
+    "tablet",
+    "tablets",
+    "pill",
+    "pills",
+    "drug",
+    "drugs",
+    "take",
+    "taking",
+}
+CONTEXT_EXTENSION_PREFIXES = ("and ", "also ", "plus ", "with ", "along with ")
 
 EMPATHY_SINGLE = [
     "I am sorry you are not feeling well. I checked your symptoms and here is the closest match.",
@@ -143,10 +174,83 @@ class MedicalAIAgent:
     def __init__(self):
         self.predictor = DiseasePredictor()
         self.recommendation_data = self._load_recommendation_knowledge()
+        self.user_context = {}
 
     @staticmethod
     def _contains_phrase(text, phrase):
         return f" {phrase} " in f" {text} "
+
+    def _get_user_context(self, user_id):
+        if user_id is None:
+            return None
+        return self.user_context.get(str(user_id))
+
+    def _store_user_context(
+        self,
+        user_id,
+        *,
+        source_text,
+        matched_symptoms,
+        disease_predictions,
+        medicine_suggestions,
+        care_advice,
+        urgent_warning,
+        model,
+    ):
+        if user_id is None:
+            return
+
+        self.user_context[str(user_id)] = {
+            "source_text": source_text,
+            "matched_symptoms": list(matched_symptoms),
+            "disease_predictions": list(disease_predictions),
+            "medicine_suggestions": list(medicine_suggestions),
+            "care_advice": list(care_advice),
+            "urgent_warning": urgent_warning,
+            "model": model,
+        }
+
+    def _is_contextual_medicine_follow_up(self, user_input_lower):
+        if any(self._contains_phrase(user_input_lower, phrase) for phrase in FOLLOW_UP_MEDICINE_PHRASES):
+            return True
+
+        tokens = set(self.predictor._tokenize(user_input_lower))
+        return bool(tokens.intersection(FOLLOW_UP_REFERENCE_TOKENS)) and bool(
+            tokens.intersection(FOLLOW_UP_MEDICINE_TOKENS)
+        )
+
+    def _should_extend_previous_context(self, user_input_lower, user_context):
+        if not user_context:
+            return False
+
+        if any(user_input_lower.startswith(prefix) for prefix in CONTEXT_EXTENSION_PREFIXES):
+            return True
+
+        extension_markers = [
+            "also have",
+            "also feeling",
+            "also getting",
+            "and i have",
+            "and also",
+        ]
+        return any(self._contains_phrase(user_input_lower, marker) for marker in extension_markers)
+
+    def _build_contextual_medicine_response(self, user_context):
+        return {
+            "success": True,
+            "contextual_follow_up": True,
+            "empathy_message": (
+                "Based on the symptoms you mentioned in your previous message, here are the medicines for that."
+            ),
+            "symptoms_detected": user_context["matched_symptoms"],
+            "results": user_context["disease_predictions"],
+            "medicine_suggestions": user_context["medicine_suggestions"],
+            "care_advice": user_context["care_advice"],
+            "urgent_warning": user_context["urgent_warning"],
+            "follow_up": "If you want, I can also help you pick one of these medicines from the shop.",
+            "model": user_context["model"],
+            "disclaimer": self.DISCLAIMER,
+        }
 
     def _score_medicine_match(self, query_text, medicine):
         query_tokens = {
@@ -188,7 +292,7 @@ class MedicalAIAgent:
     def _recommendation_dataset_path(self):
         base_dir = Path(__file__).resolve().parents[1]
         local_data = base_dir / "data" / "medical_question_answer_dataset_50000.csv"
-        download_data = Path("/Users/rutujabarde/Downloads/medical_question_answer_dataset_50000.csv")
+        download_data = Path.home() / "Downloads" / "medical_question_answer_dataset_50000.csv"
         env_data = os.environ.get("MEDICAL_QA_DATASET_PATH")
 
         candidates = [Path(env_data) if env_data else None, local_data, download_data]
@@ -547,9 +651,10 @@ class MedicalAIAgent:
 
         return suggestions, care_advice
 
-    def analyze_symptoms(self, user_input):
+    def analyze_symptoms(self, user_input, user_id=None):
         """Analyze symptoms with disease prediction and medicine recommendation."""
         user_input_lower = self.predictor._normalize_text(user_input)
+        user_context = self._get_user_context(user_id)
 
         if not user_input_lower:
             return {
@@ -557,6 +662,23 @@ class MedicalAIAgent:
                 "message": "Type the symptoms you are having and I will suggest diseases and medicines.",
                 "disclaimer": self.DISCLAIMER,
             }
+
+        if self._is_contextual_medicine_follow_up(user_input_lower):
+            if user_context and user_context.get("medicine_suggestions"):
+                return self._build_contextual_medicine_response(user_context)
+            return {
+                "success": False,
+                "message": (
+                    "I can do that, but I need a symptom result to refer to first.\n\n"
+                    "Describe the symptoms you are having, then you can follow up with messages like "
+                    "\"give medicine for it\" or \"what should I take for this?\""
+                ),
+                "disclaimer": self.DISCLAIMER,
+            }
+
+        effective_input = user_input
+        if self._should_extend_previous_context(user_input_lower, user_context):
+            effective_input = f"{user_context['source_text']}. {user_input}"
 
         order_response = self._check_order_intent(user_input_lower)
         if order_response:
@@ -567,7 +689,7 @@ class MedicalAIAgent:
             return chat_response
 
         try:
-            prediction = self.predictor.predict(user_input)
+            prediction = self.predictor.predict(effective_input)
         except FileNotFoundError as error:
             return {
                 "success": False,
@@ -592,12 +714,31 @@ class MedicalAIAgent:
                 "disclaimer": self.DISCLAIMER,
             }
 
-        medicine_suggestions, care_advice = self._recommend_medicines(user_input, matched_symptoms, disease_predictions)
+        medicine_suggestions, care_advice = self._recommend_medicines(
+            effective_input,
+            matched_symptoms,
+            disease_predictions,
+        )
 
         empathy_message = random.choice(EMPATHY_MULTIPLE if len(matched_symptoms) > 1 else EMPATHY_SINGLE)
+        if effective_input != user_input:
+            empathy_message = (
+                "I combined this message with your previous symptoms so the recommendation stays connected."
+            )
         follow_up = None
         if len(matched_symptoms) < 2:
             follow_up = "Add one or two more symptoms if possible. The model gets more reliable with richer details."
+
+        self._store_user_context(
+            user_id,
+            source_text=effective_input,
+            matched_symptoms=matched_symptoms,
+            disease_predictions=disease_predictions,
+            medicine_suggestions=medicine_suggestions,
+            care_advice=care_advice,
+            urgent_warning=prediction["urgent_warning"],
+            model=prediction["model"],
+        )
 
         return {
             "success": True,
