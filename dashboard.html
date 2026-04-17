@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - MedAdvisor</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div class="dashboard">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-brand">
+        <span class="logo">🏥</span>
+        <h2>MedAdvisor</h2>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="#" class="active" onclick="showSection('chat')"><span class="nav-icon">💬</span> Health Chat</a>
+        <a href="shop.html"><span class="nav-icon">💊</span> Medicine Shop</a>
+        <a href="cart.html"><span class="nav-icon">🛒</span> My Cart</a>
+        <a href="#" onclick="showSection('orders')"><span class="nav-icon">📦</span> My Orders</a>
+        <a href="tracking.html"><span class="nav-icon">🔍</span> Track Order</a>
+        <a href="index.html"><span class="nav-icon">🏠</span> Home</a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-info">
+          <div class="user-avatar" id="sidebarAvatar">U</div>
+          <div>
+            <div class="user-name" id="sidebarName">User</div>
+            <div class="user-email" id="sidebarEmail">user@email.com</div>
+          </div>
+        </div>
+        <button class="btn btn-sm btn-danger w-full mt-2" onclick="logout()">Logout</button>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <button class="hamburger" onclick="toggleSidebar()" style="position:fixed;top:16px;left:16px;z-index:60">☰</button>
+
+      <!-- Chat Section -->
+      <div id="chatSection">
+        <div class="main-header">
+          <div>
+            <h2>Health Chat</h2>
+            <p class="breadcrumb">Ask our AI about your symptoms</p>
+          </div>
+        </div>
+        <div class="chat-container">
+          <div class="chat-header">
+            <div class="bot-avatar">🤖</div>
+            <div style="flex:1">
+              <h3>Medical AI Assistant</h3>
+              <p>Powered by MedAdvisor AI Agent</p>
+            </div>
+            <div class="lang-selector">
+              <label for="voiceLang" class="lang-label">🌐</label>
+              <select id="voiceLang" onchange="changeVoiceLang(this.value)" title="Voice Language">
+                <option value="en-US">English</option>
+                <option value="hi-IN">हिन्दी</option>
+                <option value="mr-IN">मराठी</option>
+              </select>
+            </div>
+          </div>
+          <div class="chat-messages" id="chatMessages">
+            <div class="message message-bot">
+              <div class="message-avatar">🤖</div>
+              <div>
+                <div class="message-bubble">
+                  Hello! I'm your Medical AI Assistant. 👋<br><br>
+                  I can help you understand your symptoms and suggest safe over-the-counter medicines.<br><br>
+                  <strong>Try describing your symptoms:</strong><br>
+                  • "I have a headache and fever"<br>
+                  • "I'm experiencing stomach pain"<br>
+                  • "I have a cough and sore throat"<br><br>
+                  <em>Remember: Always consult a doctor for professional medical advice.</em>
+                </div>
+                <div class="disclaimer-box mt-1">
+                  <span>⚠️</span>
+                  <span>This AI provides general health information only. Not a substitute for professional medical advice.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <button class="stop-ai-voice-btn hidden" id="stopAiVoiceBtn" onclick="stopAiVoice()" title="Stop AI Voice">
+            <span class="stop-icon">⏹</span> Stop AI Voice
+          </button>
+          <div class="chat-input-area">
+            <input type="text" id="chatInput" placeholder="Describe your symptoms..." onkeypress="if(event.key==='Enter')sendMessage()">
+            <button class="voice-mic-btn" id="micBtn" onclick="toggleVoiceInput()" title="Speak your symptoms">🎤</button>
+            <button onclick="sendMessage()" id="sendBtn">➤</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Orders Section -->
+      <div id="ordersSection" class="hidden">
+        <div class="main-header">
+          <div>
+            <h2>My Orders</h2>
+            <p class="breadcrumb">View your order history</p>
+          </div>
+        </div>
+        <div id="ordersList">
+          <div class="page-loader"><div class="loader"></div></div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+  <script src="js/app.js"></script>
+  <script src="js/chat.js"></script>
+</body>
+</html>
