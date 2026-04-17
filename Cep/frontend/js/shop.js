@@ -4,6 +4,74 @@ let currentCategory = 'all';
 
 document.addEventListener('DOMContentLoaded', () => { loadMedicines(); });
 
+function normalizeText(value) {
+  return (value || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function tokenize(value) {
+  return normalizeText(value).split(' ').filter(Boolean);
+}
+
+function editDistanceLimited(a, b, maxDistance = 2) {
+  if (a === b) return 0;
+  if (Math.abs(a.length - b.length) > maxDistance) return maxDistance + 1;
+
+  let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    const curr = [i];
+    let minRow = i;
+    for (let j = 1; j <= b.length; j++) {
+      const ins = curr[j - 1] + 1;
+      const del = prev[j] + 1;
+      const rep = prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1);
+      const cost = Math.min(ins, del, rep);
+      curr.push(cost);
+      if (cost < minRow) minRow = cost;
+    }
+    if (minRow > maxDistance) return maxDistance + 1;
+    prev = curr;
+  }
+  return prev[prev.length - 1];
+}
+
+function semanticMedicineScore(medicine, query) {
+  const normalizedQuery = normalizeText(query);
+  const queryTokens = tokenize(query);
+  if (!normalizedQuery || !queryTokens.length) return 0;
+
+  const name = normalizeText(medicine.name);
+  const generic = normalizeText(medicine.generic_name);
+  const description = normalizeText(medicine.description || '');
+  const category = normalizeText(medicine.category || '');
+  const combinedTokens = new Set(tokenize(`${medicine.name} ${medicine.generic_name || ''} ${medicine.description || ''} ${medicine.category || ''}`));
+
+  let score = 0;
+  if (name.includes(normalizedQuery)) score += 10;
+  if (generic.includes(normalizedQuery)) score += 8;
+  if (description.includes(normalizedQuery)) score += 4;
+  if (category.includes(normalizedQuery)) score += 4;
+
+  for (const token of queryTokens) {
+    if (combinedTokens.has(token)) {
+      score += 2.5;
+      continue;
+    }
+
+    for (const medToken of combinedTokens) {
+      if (token.length <= 4 && editDistanceLimited(token, medToken, 1) <= 1) {
+        score += 1.2;
+        break;
+      }
+      if (token.length > 4 && editDistanceLimited(token, medToken, 2) <= 2) {
+        score += 0.9;
+        break;
+      }
+    }
+  }
+
+  return score;
+}
+
 async function loadMedicines() {
   const data = await apiCall('/medicines/');
   if (data?.medicines) { allMedicines = data.medicines; renderMedicines(allMedicines); }
@@ -36,10 +104,17 @@ function renderMedicines(medicines) {
 }
 
 function filterMedicines() {
-  const search = document.getElementById('searchInput').value.toLowerCase();
+  const search = document.getElementById('searchInput').value;
   let filtered = allMedicines;
   if (currentCategory !== 'all') filtered = filtered.filter(m => m.category === currentCategory);
-  if (search) filtered = filtered.filter(m => m.name.toLowerCase().includes(search) || m.generic_name.toLowerCase().includes(search) || (m.description||'').toLowerCase().includes(search));
+  if (search && normalizeText(search)) {
+    const ranked = filtered
+      .map(medicine => ({ medicine, score: semanticMedicineScore(medicine, search) }))
+      .filter(item => item.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .map(item => item.medicine);
+    filtered = ranked;
+  }
   renderMedicines(filtered);
 }
 

@@ -1,0 +1,15 @@
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+
+# Virtual environments
+.venv/
+Cep/backend/.venv/
+
+# Local runtime data
+instance/
+Cep/backend/instance/
+Cep/backend/uploads/prescriptions/
+
+# Local ML cache artifact
+Cep/backend/data/disease_prediction_model.pkl

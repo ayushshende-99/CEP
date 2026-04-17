@@ -1,403 +1,275 @@
-# Medical AI Agent - Rule-based symptom analysis engine
+"""Medical AI agent that predicts diseases and recommends medicines from symptoms."""
 
-MEDICAL_DATABASE = {
-    "headache": {
-        "conditions": ["Tension Headache", "Migraine", "Sinusitis", "Dehydration"],
-        "medicines": [
-            {
-                "name": "Paracetamol (Tylenol)",
-                "generic": "Acetaminophen",
-                "dosage": "500mg-1000mg every 4-6 hours, max 4g/day",
-                "usage": "Take with water, can be taken with or without food",
-                "side_effects": ["Nausea", "Liver damage (overdose)"],
-                "precautions": ["Avoid alcohol", "Do not exceed recommended dose"]
-            },
-            {
-                "name": "Ibuprofen (Advil)",
-                "generic": "Ibuprofen",
-                "dosage": "200mg-400mg every 4-6 hours",
-                "usage": "Take with food to reduce stomach upset",
-                "side_effects": ["Stomach upset", "Dizziness", "Heartburn"],
-                "precautions": ["Take with food", "Avoid if you have stomach ulcers"]
-            }
-        ],
-        "home_remedies": ["Rest in a dark, quiet room", "Apply cold compress to forehead", "Stay hydrated", "Practice relaxation techniques"],
-        "when_to_see_doctor": "If headache is severe, sudden, or accompanied by fever, stiff neck, confusion, or vision changes"
-    },
-    "fever": {
-        "conditions": ["Common Cold", "Flu (Influenza)", "Viral Infection", "Bacterial Infection"],
-        "medicines": [
-            {
-                "name": "Paracetamol (Tylenol)",
-                "generic": "Acetaminophen",
-                "dosage": "500mg-1000mg every 4-6 hours, max 4g/day",
-                "usage": "Take with water for fever reduction",
-                "side_effects": ["Nausea", "Liver damage (overdose)"],
-                "precautions": ["Stay hydrated", "Do not exceed recommended dose"]
-            },
-            {
-                "name": "Ibuprofen (Advil)",
-                "generic": "Ibuprofen",
-                "dosage": "200mg-400mg every 4-6 hours",
-                "usage": "Take with food, helps reduce fever and inflammation",
-                "side_effects": ["Stomach upset", "Dizziness"],
-                "precautions": ["Take with food", "Not recommended for children under 6 months"]
-            }
-        ],
-        "home_remedies": ["Rest and sleep", "Drink plenty of fluids", "Use a light blanket", "Sponge bath with lukewarm water"],
-        "when_to_see_doctor": "If fever exceeds 103°F (39.4°C), lasts more than 3 days, or is accompanied by severe symptoms"
-    },
-    "cold": {
-        "conditions": ["Common Cold", "Upper Respiratory Infection", "Allergic Rhinitis"],
-        "medicines": [
-            {
-                "name": "Cetirizine (Zyrtec)",
-                "generic": "Cetirizine Hydrochloride",
-                "dosage": "10mg once daily",
-                "usage": "Take in the evening, may cause drowsiness",
-                "side_effects": ["Drowsiness", "Dry mouth", "Fatigue"],
-                "precautions": ["Avoid driving if drowsy", "Avoid alcohol"]
-            },
-            {
-                "name": "Phenylephrine (Sudafed PE)",
-                "generic": "Phenylephrine",
-                "dosage": "10mg every 4 hours, max 60mg/day",
-                "usage": "Decongestant, take during the day",
-                "side_effects": ["Insomnia", "Nervousness", "Increased blood pressure"],
-                "precautions": ["Not for those with high blood pressure", "Avoid before bedtime"]
-            },
-            {
-                "name": "Vitamin C Supplement",
-                "generic": "Ascorbic Acid",
-                "dosage": "500mg-1000mg daily",
-                "usage": "Take with food to boost immunity",
-                "side_effects": ["Stomach upset at high doses"],
-                "precautions": ["Do not exceed 2000mg/day"]
-            }
-        ],
-        "home_remedies": ["Steam inhalation", "Warm salt water gargle", "Honey and lemon in warm water", "Rest"],
-        "when_to_see_doctor": "If symptoms last more than 10 days, or include high fever, severe sinus pain, or difficulty breathing"
-    },
-    "cough": {
-        "conditions": ["Common Cold", "Bronchitis", "Allergies", "Post-nasal Drip"],
-        "medicines": [
-            {
-                "name": "Dextromethorphan (Robitussin)",
-                "generic": "Dextromethorphan",
-                "dosage": "10-20mg every 4 hours or 30mg every 6-8 hours",
-                "usage": "Cough suppressant, take as needed",
-                "side_effects": ["Dizziness", "Drowsiness", "Nausea"],
-                "precautions": ["Do not use with MAO inhibitors", "Avoid alcohol"]
-            },
-            {
-                "name": "Honey & Lemon Cough Syrup",
-                "generic": "Natural remedy",
-                "dosage": "1-2 teaspoons as needed",
-                "usage": "Soothes throat, natural cough relief",
-                "side_effects": ["None for most adults"],
-                "precautions": ["Not for children under 1 year"]
-            }
-        ],
-        "home_remedies": ["Warm honey and lemon water", "Steam inhalation", "Keep head elevated while sleeping", "Stay hydrated"],
-        "when_to_see_doctor": "If cough lasts more than 3 weeks, produces blood, or is accompanied by shortness of breath"
-    },
-    "stomach pain": {
-        "conditions": ["Indigestion", "Gastritis", "Food Poisoning", "Acid Reflux (GERD)"],
-        "medicines": [
-            {
-                "name": "Antacid (Tums/Maalox)",
-                "generic": "Calcium Carbonate / Magnesium Hydroxide",
-                "dosage": "1-2 tablets as needed after meals",
-                "usage": "Chew tablets thoroughly, take after meals",
-                "side_effects": ["Constipation", "Gas"],
-                "precautions": ["Do not exceed recommended dose", "Not for prolonged use"]
-            },
-            {
-                "name": "Omeprazole (Prilosec)",
-                "generic": "Omeprazole",
-                "dosage": "20mg once daily before breakfast",
-                "usage": "Take 30 minutes before first meal of the day",
-                "side_effects": ["Headache", "Nausea", "Diarrhea"],
-                "precautions": ["Not for long-term use without doctor supervision", "May affect B12 absorption"]
-            },
-            {
-                "name": "Simethicone (Gas-X)",
-                "generic": "Simethicone",
-                "dosage": "40-125mg after meals and at bedtime",
-                "usage": "Relieves gas and bloating",
-                "side_effects": ["Rarely causes side effects"],
-                "precautions": ["Safe for most adults"]
-            }
-        ],
-        "home_remedies": ["Ginger tea", "Peppermint tea", "Warm compress on abdomen", "BRAT diet (bananas, rice, applesauce, toast)"],
-        "when_to_see_doctor": "If pain is severe, persistent, accompanied by vomiting blood, or black stools"
-    },
-    "sore throat": {
-        "conditions": ["Pharyngitis", "Tonsillitis", "Common Cold", "Strep Throat"],
-        "medicines": [
-            {
-                "name": "Throat Lozenges (Strepsils)",
-                "generic": "Amylmetacresol/Dichlorobenzyl alcohol",
-                "dosage": "1 lozenge every 2-3 hours",
-                "usage": "Dissolve slowly in mouth",
-                "side_effects": ["Mild mouth irritation"],
-                "precautions": ["Do not exceed 12 lozenges per day"]
-            },
-            {
-                "name": "Ibuprofen (Advil)",
-                "generic": "Ibuprofen",
-                "dosage": "200-400mg every 4-6 hours",
-                "usage": "Reduces pain and inflammation",
-                "side_effects": ["Stomach upset", "Dizziness"],
-                "precautions": ["Take with food"]
-            }
-        ],
-        "home_remedies": ["Warm salt water gargle", "Honey and warm water", "Rest your voice", "Use a humidifier"],
-        "when_to_see_doctor": "If sore throat is severe, lasts more than a week, or is accompanied by difficulty swallowing or breathing"
-    },
-    "allergy": {
-        "conditions": ["Allergic Rhinitis", "Hay Fever", "Seasonal Allergies", "Skin Allergy"],
-        "medicines": [
-            {
-                "name": "Cetirizine (Zyrtec)",
-                "generic": "Cetirizine",
-                "dosage": "10mg once daily",
-                "usage": "Take in the evening",
-                "side_effects": ["Drowsiness", "Dry mouth"],
-                "precautions": ["Avoid driving if drowsy"]
-            },
-            {
-                "name": "Loratadine (Claritin)",
-                "generic": "Loratadine",
-                "dosage": "10mg once daily",
-                "usage": "Non-drowsy antihistamine, take any time",
-                "side_effects": ["Headache", "Dry mouth"],
-                "precautions": ["Generally well-tolerated"]
-            },
-            {
-                "name": "Fluticasone Nasal Spray (Flonase)",
-                "generic": "Fluticasone Propionate",
-                "dosage": "1-2 sprays per nostril once daily",
-                "usage": "Shake well before use, spray into each nostril",
-                "side_effects": ["Nasal irritation", "Nosebleed"],
-                "precautions": ["Use regularly for best results"]
-            }
-        ],
-        "home_remedies": ["Avoid known allergens", "Use HEPA air filters", "Nasal saline rinse", "Keep windows closed during high pollen times"],
-        "when_to_see_doctor": "If symptoms are severe, don't respond to OTC medications, or you develop difficulty breathing"
-    },
-    "body pain": {
-        "conditions": ["Muscle Strain", "Arthritis", "Fibromyalgia", "Overexertion"],
-        "medicines": [
-            {
-                "name": "Ibuprofen (Advil)",
-                "generic": "Ibuprofen",
-                "dosage": "200-400mg every 4-6 hours",
-                "usage": "Take with food for pain and inflammation",
-                "side_effects": ["Stomach upset", "Dizziness"],
-                "precautions": ["Take with food", "Avoid long-term use"]
-            },
-            {
-                "name": "Diclofenac Gel (Voltaren)",
-                "generic": "Diclofenac",
-                "dosage": "Apply to affected area 3-4 times daily",
-                "usage": "Topical pain relief, rub gently into skin",
-                "side_effects": ["Skin irritation at application site"],
-                "precautions": ["Do not apply to broken skin", "Wash hands after application"]
-            },
-            {
-                "name": "Muscle Relaxant Balm",
-                "generic": "Menthol/Methyl Salicylate",
-                "dosage": "Apply to affected area as needed",
-                "usage": "Massage gently into sore muscles",
-                "side_effects": ["Skin irritation"],
-                "precautions": ["For external use only", "Avoid contact with eyes"]
-            }
-        ],
-        "home_remedies": ["Hot or cold compress", "Gentle stretching", "Epsom salt bath", "Rest the affected area"],
-        "when_to_see_doctor": "If pain is severe, persistent, or accompanied by swelling, redness, or inability to move"
-    },
-    "diarrhea": {
-        "conditions": ["Food Poisoning", "Viral Gastroenteritis", "IBS", "Bacterial Infection"],
-        "medicines": [
-            {
-                "name": "Loperamide (Imodium)",
-                "generic": "Loperamide",
-                "dosage": "4mg initially, then 2mg after each loose stool, max 16mg/day",
-                "usage": "Take with fluid to prevent dehydration",
-                "side_effects": ["Constipation", "Abdominal cramps"],
-                "precautions": ["Do not use if fever or bloody stools", "Stay hydrated"]
-            },
-            {
-                "name": "ORS (Oral Rehydration Salts)",
-                "generic": "Electrolyte Solution",
-                "dosage": "1 sachet dissolved in 1 liter of clean water",
-                "usage": "Sip frequently throughout the day",
-                "side_effects": ["Very safe when prepared correctly"],
-                "precautions": ["Use clean drinking water", "Discard after 24 hours"]
-            }
-        ],
-        "home_remedies": ["BRAT diet", "Drink clear fluids", "Avoid dairy and fatty foods", "Probiotics (yogurt)"],
-        "when_to_see_doctor": "If diarrhea lasts more than 2 days, contains blood, or you show signs of severe dehydration"
-    },
-    "skin rash": {
-        "conditions": ["Contact Dermatitis", "Eczema", "Allergic Reaction", "Heat Rash"],
-        "medicines": [
-            {
-                "name": "Hydrocortisone Cream (1%)",
-                "generic": "Hydrocortisone",
-                "dosage": "Apply thin layer to affected area 1-2 times daily",
-                "usage": "For external use only, rub in gently",
-                "side_effects": ["Skin thinning with prolonged use"],
-                "precautions": ["Do not use on face for extended periods", "Not for infected areas"]
-            },
-            {
-                "name": "Calamine Lotion",
-                "generic": "Calamine/Zinc Oxide",
-                "dosage": "Apply to affected area as needed",
-                "usage": "Shake well, apply with cotton ball",
-                "side_effects": ["Rarely causes side effects"],
-                "precautions": ["For external use only"]
-            },
-            {
-                "name": "Cetirizine (Zyrtec)",
-                "generic": "Cetirizine",
-                "dosage": "10mg once daily",
-                "usage": "Oral antihistamine to reduce itching",
-                "side_effects": ["Drowsiness", "Dry mouth"],
-                "precautions": ["Avoid driving if drowsy"]
-            }
-        ],
-        "home_remedies": ["Cool compress", "Oatmeal bath", "Aloe vera gel", "Avoid scratching"],
-        "when_to_see_doctor": "If rash spreads rapidly, is accompanied by fever, or shows signs of infection"
-    },
-    "insomnia": {
-        "conditions": ["Stress-related Insomnia", "Anxiety", "Poor Sleep Hygiene", "Caffeine Effects"],
-        "medicines": [
-            {
-                "name": "Melatonin Supplement",
-                "generic": "Melatonin",
-                "dosage": "1-5mg 30-60 minutes before bedtime",
-                "usage": "Take in a dark room before sleep",
-                "side_effects": ["Daytime drowsiness", "Headache"],
-                "precautions": ["Start with lowest dose", "Not for long-term use without guidance"]
-            },
-            {
-                "name": "Diphenhydramine (Benadryl)",
-                "generic": "Diphenhydramine",
-                "dosage": "25-50mg at bedtime",
-                "usage": "Take 30 minutes before desired sleep time",
-                "side_effects": ["Drowsiness", "Dry mouth", "Dizziness"],
-                "precautions": ["Not for regular use", "Avoid in elderly"]
-            }
-        ],
-        "home_remedies": ["Maintain regular sleep schedule", "Avoid screens before bed", "Chamomile tea", "Dark, cool bedroom environment"],
-        "when_to_see_doctor": "If insomnia persists for more than 4 weeks or significantly impacts daily life"
-    },
-    "anxiety": {
-        "conditions": ["Generalized Anxiety", "Stress Response", "Panic Symptoms"],
-        "medicines": [
-            {
-                "name": "Chamomile Tea Supplement",
-                "generic": "Chamomile Extract",
-                "dosage": "1-2 cups of tea or 200-400mg capsule daily",
-                "usage": "Natural calming supplement",
-                "side_effects": ["Rarely causes allergic reaction in people allergic to ragweed"],
-                "precautions": ["Generally safe for most adults"]
-            },
-            {
-                "name": "Magnesium Supplement",
-                "generic": "Magnesium Glycinate",
-                "dosage": "200-400mg daily",
-                "usage": "Take with food, preferably in the evening",
-                "side_effects": ["Loose stools at high doses"],
-                "precautions": ["Check with doctor if you have kidney disease"]
-            }
-        ],
-        "home_remedies": ["Deep breathing exercises", "Regular physical exercise", "Meditation and mindfulness", "Limit caffeine intake"],
-        "when_to_see_doctor": "Anxiety is a medical condition. Please consult a mental health professional for proper evaluation and treatment"
-    }
+import csv
+import os
+import random
+import re
+from collections import Counter, defaultdict
+from pathlib import Path
+
+from agents.disease_predictor import DiseasePredictor
+
+
+ORDER_KEYWORDS = [
+    "order",
+    "buy",
+    "purchase",
+    "i want",
+    "i need",
+    "get me",
+    "can i get",
+    "i d like",
+    "give me",
+    "need to order",
+    "want to buy",
+]
+ORDER_NOISE_TOKENS = {
+    "order",
+    "buy",
+    "purchase",
+    "want",
+    "need",
+    "get",
+    "give",
+    "tablet",
+    "tablets",
+    "pill",
+    "pills",
+    "unit",
+    "units",
+    "box",
+    "boxes",
+    "pack",
+    "packs",
+    "capsule",
+    "capsules",
+    "bottle",
+    "bottles",
 }
 
-# Symptom keyword mapping for fuzzy matching
-SYMPTOM_KEYWORDS = {
-    "headache": ["headache", "head pain", "head ache", "migraine", "head hurts", "head pounding"],
-    "fever": ["fever", "temperature", "hot", "chills", "feverish", "high temperature"],
-    "cold": ["cold", "runny nose", "sneezing", "nasal congestion", "stuffy nose", "blocked nose"],
-    "cough": ["cough", "coughing", "dry cough", "wet cough", "persistent cough"],
-    "stomach pain": ["stomach pain", "stomach ache", "abdominal pain", "belly pain", "cramps", "indigestion", "bloating", "gas", "acidity", "heartburn"],
-    "sore throat": ["sore throat", "throat pain", "throat hurts", "difficulty swallowing", "scratchy throat"],
-    "allergy": ["allergy", "allergic", "itchy eyes", "sneezing", "hives", "allergic reaction", "hay fever"],
-    "body pain": ["body pain", "muscle pain", "back pain", "joint pain", "body ache", "muscle ache", "sore muscles"],
-    "diarrhea": ["diarrhea", "loose motions", "loose stool", "watery stool", "upset stomach", "food poisoning"],
-    "skin rash": ["skin rash", "rash", "itching", "itchy skin", "skin irritation", "red skin", "bumps on skin"],
-    "insomnia": ["insomnia", "can't sleep", "cannot sleep", "sleepless", "trouble sleeping", "sleep problem"],
-    "anxiety": ["anxiety", "anxious", "nervous", "panic", "stressed", "worry", "worried", "restless"]
-}
-
-
-# Order intent keywords
-ORDER_KEYWORDS = ["order", "buy", "purchase", "i want", "i need", "get me", "can i get", "i'd like", "give me", "need to order", "want to buy"]
-
-# Greetings and casual conversation patterns
-GREETING_KEYWORDS = ["hello", "hi", "hey", "good morning", "good afternoon", "good evening", "howdy", "hola", "sup", "what's up", "greetings"]
+GREETING_KEYWORDS = [
+    "hello",
+    "hi",
+    "hey",
+    "good morning",
+    "good afternoon",
+    "good evening",
+    "howdy",
+    "hola",
+    "sup",
+    "what s up",
+    "greetings",
+]
 THANK_KEYWORDS = ["thank", "thanks", "thx", "appreciate", "helpful", "great help"]
 BYE_KEYWORDS = ["bye", "goodbye", "see you", "take care", "later", "goodnight"]
 HELP_KEYWORDS = ["help", "what can you do", "how does this work", "what do you do", "how to use"]
 FEELING_KEYWORDS = ["not feeling well", "feel sick", "feeling bad", "unwell", "not well", "feel terrible", "feeling awful", "feel awful"]
 
-# Empathetic intro messages based on symptom count
 EMPATHY_SINGLE = [
-    "I'm sorry to hear you're not feeling well. 💙 Let me help you out!",
-    "Oh no, that doesn't sound fun! Let me see what I can suggest. 🤗",
-    "I hear you! Let's figure this out together. 💪",
-    "I understand that must be uncomfortable. Here's what I found for you:",
+    "I am sorry you are not feeling well. I checked your symptoms and here is the closest match.",
+    "That sounds uncomfortable. I checked your symptoms against the trained predictor.",
+    "I can help with that. Here are the strongest disease matches from the symptom model.",
 ]
 
 EMPATHY_MULTIPLE = [
-    "I'm sorry you're dealing with multiple symptoms. 💙 Let me give you a thorough breakdown!",
-    "That sounds like a rough time! Let me check everything for you. 🤗",
-    "I can see you've got a few things going on. Don't worry — let's tackle them one by one! 💪",
+    "You mentioned multiple symptoms, so I used the trained model to rank likely diseases.",
+    "There are several symptoms here, which helps the model narrow the disease ranking.",
+    "I ran this symptom combination through the predictor and ranked the closest disease patterns.",
 ]
 
-import random
+SYMPTOM_CATEGORY_HINTS = {
+    "headache": ["Pain Relief"],
+    "frontal headache": ["Pain Relief"],
+    "muscle pain": ["Pain Relief"],
+    "joint pain": ["Pain Relief"],
+    "back pain": ["Pain Relief"],
+    "low back pain": ["Pain Relief"],
+    "ache all over": ["Pain Relief"],
+    "fever": ["Cough & Cold", "Pain Relief"],
+    "cough": ["Cough & Cold"],
+    "sore throat": ["Cough & Cold"],
+    "throat irritation": ["Cough & Cold"],
+    "nasal congestion": ["Cough & Cold"],
+    "sinus congestion": ["Cough & Cold"],
+    "coryza": ["Cough & Cold"],
+    "diarrhea": ["Digestive"],
+    "nausea": ["Digestive"],
+    "vomiting": ["Digestive"],
+    "sharp abdominal pain": ["Digestive"],
+    "burning abdominal pain": ["Digestive"],
+    "heartburn": ["Digestive"],
+    "stomach bloating": ["Digestive"],
+    "skin rash": ["Skin Care"],
+    "skin irritation": ["Skin Care"],
+    "itching of skin": ["Skin Care", "Allergy"],
+    "anxiety and nervousness": ["Sleep & Wellness"],
+    "restlessness": ["Sleep & Wellness"],
+    "insomnia": ["Sleep & Wellness"],
+    "fatigue": ["Vitamins"],
+    "weakness": ["Vitamins"],
+    "sneezing": ["Allergy", "Cough & Cold"],
+}
+
+DISEASE_CATEGORY_HINTS = {
+    "allergy": ["Allergy"],
+    "eczema": ["Skin Care"],
+    "dermatitis": ["Skin Care"],
+    "rash": ["Skin Care"],
+    "gastro": ["Digestive"],
+    "diarrhea": ["Digestive"],
+    "ulcer": ["Digestive"],
+    "reflux": ["Digestive"],
+    "sinus": ["Cough & Cold"],
+    "cold": ["Cough & Cold"],
+    "flu": ["Cough & Cold"],
+    "bronch": ["Cough & Cold"],
+    "pain": ["Pain Relief"],
+    "arthritis": ["Pain Relief"],
+    "migraine": ["Pain Relief"],
+    "insomnia": ["Sleep & Wellness"],
+    "anxiety": ["Sleep & Wellness"],
+    "deficiency": ["Vitamins"],
+}
 
 
 class MedicalAIAgent:
-    """
-    Friendly, rule-based Medical AI Agent that analyzes symptoms
-    and provides OTC medicine suggestions with empathy and safety disclaimers.
-    """
+    """Friendly wrapper around disease prediction and medicine recommendation."""
 
     DISCLAIMER = (
-        "Gentle reminder: This is AI-generated guidance based on common symptoms. "
-        "It's NOT a medical diagnosis. Please always consult a qualified healthcare "
-        "professional before taking any medication. Your health matters to us! 💙"
+        "This is a machine learning prediction based on symptom patterns in the training data. "
+        "It is not a medical diagnosis, and you should confirm any concern with a qualified clinician."
     )
 
     def __init__(self):
-        self.database = MEDICAL_DATABASE
-        self.keywords = SYMPTOM_KEYWORDS
+        self.predictor = DiseasePredictor()
+        self.recommendation_data = self._load_recommendation_knowledge()
+
+    @staticmethod
+    def _contains_phrase(text, phrase):
+        return f" {phrase} " in f" {text} "
+
+    def _score_medicine_match(self, query_text, medicine):
+        query_tokens = {
+            token
+            for token in self.predictor._tokenize(query_text)
+            if not token.isdigit() and token not in ORDER_NOISE_TOKENS and len(token) >= 3
+        }
+        if not query_tokens:
+            return 0.0
+
+        name_key = self.predictor._normalize_text(medicine.name)
+        generic_key = self.predictor._normalize_text(medicine.generic_name or "")
+        combined_tokens = self.predictor._tokenize(f"{medicine.name} {medicine.generic_name or ''}")
+
+        score = 0.0
+        if name_key and name_key in query_text:
+            score += 8.0
+        if generic_key and generic_key in query_text:
+            score += 6.0
+
+        overlap = len(query_tokens.intersection(combined_tokens))
+        score += overlap * 2.0
+
+        for token in query_tokens:
+            if token in combined_tokens:
+                continue
+            for med_token in combined_tokens:
+                if len(token) >= 5 and len(med_token) >= 5 and token[:3] == med_token[:3]:
+                    score += 0.4
+                if self.predictor._edit_distance_limited(token, med_token, 2) <= 1:
+                    score += 2.4
+                    break
+                if len(token) > 5 and self.predictor._edit_distance_limited(token, med_token, 2) <= 2:
+                    score += 1.4
+                    break
+
+        return score
+
+    def _recommendation_dataset_path(self):
+        base_dir = Path(__file__).resolve().parents[1]
+        local_data = base_dir / "data" / "medical_question_answer_dataset_50000.csv"
+        download_data = Path("/Users/rutujabarde/Downloads/medical_question_answer_dataset_50000.csv")
+        env_data = os.environ.get("MEDICAL_QA_DATASET_PATH")
+
+        candidates = [Path(env_data) if env_data else None, local_data, download_data]
+        for candidate in candidates:
+            if candidate and candidate.exists():
+                return candidate
+        return None
+
+    def _load_recommendation_knowledge(self):
+        dataset_path = self._recommendation_dataset_path()
+        if not dataset_path:
+            return None
+
+        disease_to_medicines = defaultdict(Counter)
+        disease_to_advice = defaultdict(Counter)
+        token_to_medicines = defaultdict(Counter)
+
+        with dataset_path.open("r", newline="", encoding="utf-8-sig") as handle:
+            reader = csv.DictReader(handle)
+            for row in reader:
+                disease = (row.get("Disease Prediction") or "").strip()
+                medicine_text = (row.get("Recommended Medicines") or "").strip()
+                advice = (row.get("Advice") or "").strip()
+                symptom_question = (row.get("Symptoms/Question") or "").strip()
+
+                if not disease:
+                    continue
+
+                disease_key = self.predictor._normalize_text(disease)
+                medicines = self._split_medicines(medicine_text)
+                if not medicines:
+                    continue
+
+                for medicine_name in medicines:
+                    disease_to_medicines[disease_key][medicine_name] += 1
+
+                if advice:
+                    disease_to_advice[disease_key][advice] += 1
+
+                for token in self.predictor._tokenize(symptom_question):
+                    if len(token) < 4:
+                        continue
+                    for medicine_name in medicines:
+                        token_to_medicines[token][medicine_name] += 1
+
+        return {
+            "path": str(dataset_path),
+            "disease_to_medicines": disease_to_medicines,
+            "disease_to_advice": disease_to_advice,
+            "token_to_medicines": token_to_medicines,
+        }
+
+    @staticmethod
+    def _split_medicines(medicine_text):
+        if not medicine_text:
+            return []
+        parts = re.split(r",|;|\band\b", medicine_text, flags=re.IGNORECASE)
+        unique = []
+        seen = set()
+        for part in parts:
+            clean = re.sub(r"\s+", " ", part).strip(" .")
+            if len(clean) < 2:
+                continue
+            key = clean.lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            unique.append(clean)
+        return unique
 
     def _check_order_intent(self, user_input_lower):
-        """Detect if user wants to order a medicine and find a match."""
-        import re
-
-        has_order_intent = False
-        for kw in ORDER_KEYWORDS:
-            if kw in user_input_lower:
-                has_order_intent = True
-                break
-
+        """Detect if the user wants to order a medicine and find the best match."""
+        has_order_intent = any(self._contains_phrase(user_input_lower, keyword) for keyword in ORDER_KEYWORDS)
         if not has_order_intent:
             return None
 
-        # Extract quantity from user input (e.g. "6 paracetamol", "order 10 omeprazole")
         quantity = 1
         qty_patterns = [
-            r'(\d+)\s+(?:tablets?|pills?|units?|boxes?|packs?|capsules?|bottles?)',
-            r'(?:order|buy|get|need|want)\s+(\d+)',
-            r'(\d+)\s+\w',  # generic: any number followed by a word
+            r"(\d+)\s+(?:tablets?|pills?|units?|boxes?|packs?|capsules?|bottles?)",
+            r"(?:order|buy|get|need|want)\s+(\d+)",
+            r"(\d+)\s+\w",
         ]
         for pattern in qty_patterns:
             match = re.search(pattern, user_input_lower)
@@ -407,245 +279,345 @@ class MedicalAIAgent:
                     quantity = parsed_qty
                     break
 
-        # Import here to avoid circular imports at module level
+        medicine_query_text = user_input_lower
+        medicine_query_text = re.sub(r"\b\d+\b", " ", medicine_query_text)
+        medicine_query_text = re.sub(
+            r"\b(order|buy|purchase|want|need|get|give|can i|get me|i want|i need|want to buy|need to order)\b",
+            " ",
+            medicine_query_text,
+        )
+        medicine_query_text = re.sub(r"\s+", " ", medicine_query_text).strip()
+
         from models import Medicine
 
-        # Try to find the medicine name in the user input
         all_medicines = Medicine.query.all()
         best_match = None
-        best_match_len = 0
+        best_score = 0.0
+        scored_candidates = []
 
-        for med in all_medicines:
-            med_name_lower = med.name.lower()
-            # Check if any significant part of the medicine name is in the user input
-            # Try full name first, then first word (brand name)
-            if med_name_lower in user_input_lower:
-                if len(med_name_lower) > best_match_len:
-                    best_match = med
-                    best_match_len = len(med_name_lower)
-            else:
-                # Try matching the first significant word (at least 4 chars)
-                words = med_name_lower.split()
-                for word in words:
-                    clean_word = word.strip('®™().,')
-                    if len(clean_word) >= 4 and clean_word in user_input_lower:
-                        if len(clean_word) > best_match_len:
-                            best_match = med
-                            best_match_len = len(clean_word)
+        for medicine in all_medicines:
+            score = self._score_medicine_match(medicine_query_text, medicine)
+            if score > 0:
+                scored_candidates.append((medicine, score))
+            if score > best_score:
+                best_match = medicine
+                best_score = score
 
-        if best_match:
-            total_price = best_match.price * quantity
-            return {
-                "success": True,
-                "is_order": True,
-                "medicine": best_match.to_dict(),
-                "quantity": quantity,
-                "requires_prescription": best_match.requires_prescription,
-                "message": (
-                    f"I found **{best_match.name}** in our pharmacy! 💊\n\n"
-                    f"💰 Price: ₹{best_match.price:.2f} each\n"
-                    f"🔢 Quantity: **{quantity}**\n"
-                    f"💵 Total: **₹{total_price:.2f}**\n"
-                    f"📦 In Stock: {best_match.stock} units\n"
-                    f"{'⚠️ **Prescription Required**' if best_match.requires_prescription else '✅ No prescription needed'}"
-                ),
-                "disclaimer": self.DISCLAIMER
-            }
-        else:
+        scored_candidates.sort(key=lambda item: item[1], reverse=True)
+
+        if not best_match or best_score < 1.5:
+            suggestions = [candidate.name for candidate, score in scored_candidates[:3] if score >= 1.0]
+            suggestion_text = ""
+            if suggestions:
+                suggestion_text = "\n\nDid you mean:\n" + "\n".join([f"• {name}" for name in suggestions])
             return {
                 "success": False,
                 "is_order": True,
                 "message": (
-                    "I'd love to help you order medicine! 🛒\n\n"
-                    "However, I couldn't identify the exact medicine you want. "
-                    "Could you please try again with the medicine name? For example:\n\n"
+                    "I can help place that order, but I could not confidently identify the medicine name.\n\n"
+                    "Try something like:\n"
                     "• \"I want to order 5 Paracetamol\"\n"
-                    "• \"Buy 2 NORSAN Omega-3 Total\"\n"
-                    "• \"I need 3 Omeprazole\"\n\n"
-                    "You can also browse our full catalog in the **Medicine Shop**! 🏪"
-                ),
-                "disclaimer": self.DISCLAIMER
+                    "• \"Buy 2 Omeprazole\"\n"
+                    "• \"I need 3 Cetirizine\"\n\n"
+                    "You can also open the Medicine Shop and pick from the catalog."
+                    f"{suggestion_text}"
+                ).strip(),
+                "disclaimer": self.DISCLAIMER,
             }
+
+        total_price = best_match.price * quantity
+        return {
+            "success": True,
+            "is_order": True,
+            "medicine": best_match.to_dict(),
+            "quantity": quantity,
+            "requires_prescription": best_match.requires_prescription,
+            "message": (
+                f"I found **{best_match.name}** in the pharmacy.\n\n"
+                f"Price: Rs {best_match.price:.2f} each\n"
+                f"Quantity: **{quantity}**\n"
+                f"Total: **Rs {total_price:.2f}**\n"
+                f"In Stock: {best_match.stock} units\n"
+                f"{'Prescription required' if best_match.requires_prescription else 'No prescription needed'}"
+            ),
+            "disclaimer": self.DISCLAIMER,
+        }
 
     def _check_casual_chat(self, user_input_lower):
         """Handle greetings, thanks, and general conversation."""
-        # Greetings
-        for kw in GREETING_KEYWORDS:
-            if kw in user_input_lower:
-                user = "there"
-                return {
-                    "success": False,
-                    "is_chat": True,
-                    "message": (
-                        f"Hey {user}! 👋😊 I'm your friendly MedAdvisor assistant!\n\n"
-                        "I'm here to help you understand your symptoms and suggest "
-                        "safe over-the-counter remedies.\n\n"
-                        "Just tell me how you're feeling, for example:\n"
-                        "• \"I have a headache and feel tired\"\n"
-                        "• \"My throat is sore and I'm coughing\"\n"
-                        "• \"I've got a stomach ache after eating\"\n\n"
-                        "I'm all ears! What's been bothering you? 💙"
-                    ),
-                    "disclaimer": self.DISCLAIMER
-                }
+        if any(self._contains_phrase(user_input_lower, keyword) for keyword in GREETING_KEYWORDS):
+            return {
+                "success": False,
+                "is_chat": True,
+                "message": (
+                    "Hello! I can analyze symptoms with a trained disease predictor, show likely diseases, "
+                    "and suggest medicines you can order.\n\n"
+                    "Try messages like:\n"
+                    "• \"I have a headache and fever\"\n"
+                    "• \"My throat is sore and I am coughing\"\n"
+                    "• \"I cannot sleep and feel anxious\"\n"
+                    "• \"I want to order Paracetamol\""
+                ),
+                "disclaimer": self.DISCLAIMER,
+            }
 
-        # Thanks
-        for kw in THANK_KEYWORDS:
-            if kw in user_input_lower:
-                return {
-                    "success": False,
-                    "is_chat": True,
-                    "message": (
-                        "You're very welcome! 😊💙 I'm glad I could help!\n\n"
-                        "Remember to take care of yourself and don't hesitate to "
-                        "reach out if you need anything else.\n\n"
-                        "If your symptoms persist or get worse, please do visit a doctor. "
-                        "Wishing you a speedy recovery! 🌟"
-                    ),
-                    "disclaimer": self.DISCLAIMER
-                }
+        if any(self._contains_phrase(user_input_lower, keyword) for keyword in THANK_KEYWORDS):
+            return {
+                "success": False,
+                "is_chat": True,
+                "message": "You are welcome. If symptoms persist or worsen, please see a doctor.",
+                "disclaimer": self.DISCLAIMER,
+            }
 
-        # Goodbye
-        for kw in BYE_KEYWORDS:
-            if kw in user_input_lower:
-                return {
-                    "success": False,
-                    "is_chat": True,
-                    "message": (
-                        "Take care of yourself! 👋💙\n\n"
-                        "Remember: rest well, stay hydrated, and don't skip meals. "
-                        "I'm always here whenever you need me!\n\n"
-                        "Wishing you good health! 🌈✨"
-                    ),
-                    "disclaimer": self.DISCLAIMER
-                }
+        if any(self._contains_phrase(user_input_lower, keyword) for keyword in BYE_KEYWORDS):
+            return {
+                "success": False,
+                "is_chat": True,
+                "message": "Take care. I am here any time you want to check symptoms or place an order.",
+                "disclaimer": self.DISCLAIMER,
+            }
 
-        # Help
-        for kw in HELP_KEYWORDS:
-            if kw in user_input_lower:
-                supported = ', '.join([s.title() for s in self.database.keys()])
-                return {
-                    "success": False,
-                    "is_chat": True,
-                    "message": (
-                        "Great question! Here's how I can help you: 🤗\n\n"
-                        "1️⃣ **Tell me your symptoms** — just describe how you feel in plain words\n"
-                        "2️⃣ **I'll analyze them** — and suggest possible conditions\n"
-                        "3️⃣ **Get medicine suggestions** — with dosage, side effects & precautions\n"
-                        "4️⃣ **Home remedies** — natural ways to feel better\n"
-                        "5️⃣ **When to see a doctor** — I'll tell you when it's important\n\n"
-                        f"I can help with: {supported}\n\n"
-                        "Just type how you're feeling and I'll do my best! 💪"
-                    ),
-                    "disclaimer": self.DISCLAIMER
-                }
+        if any(self._contains_phrase(user_input_lower, keyword) for keyword in HELP_KEYWORDS):
+            return {
+                "success": False,
+                "is_chat": True,
+                "message": (
+                    "I can do two things here:\n"
+                    "• Predict likely diseases from symptoms\n"
+                    "• Suggest medicines and let you order from the pharmacy\n\n"
+                    "The more specific your symptoms are, the better the ranking."
+                ),
+                "disclaimer": self.DISCLAIMER,
+            }
 
-        # Vague feeling unwell
-        for kw in FEELING_KEYWORDS:
-            if kw in user_input_lower:
-                return {
-                    "success": False,
-                    "is_chat": True,
-                    "message": (
-                        "I'm sorry to hear you're not feeling well! 😟💙\n\n"
-                        "To help you better, could you describe your specific symptoms? "
-                        "For example:\n\n"
-                        "• Do you have a **headache**, **fever**, or **body aches**?\n"
-                        "• Any **cough**, **sore throat**, or **runny nose**?\n"
-                        "• Experiencing **stomach pain**, **nausea**, or **diarrhea**?\n"
-                        "• Any **skin rash**, **itching**, or **allergies**?\n"
-                        "• Having trouble **sleeping** or feeling **anxious**?\n\n"
-                        "The more you tell me, the better I can help! 🤗"
-                    ),
-                    "disclaimer": self.DISCLAIMER
-                }
+        if any(self._contains_phrase(user_input_lower, keyword) for keyword in FEELING_KEYWORDS):
+            return {
+                "success": False,
+                "is_chat": True,
+                "message": "I am sorry you are feeling unwell. Share exact symptoms and I will suggest diseases and medicines.",
+                "disclaimer": self.DISCLAIMER,
+            }
 
         return None
 
+    def _category_recommendations(self, matched_symptoms, disease_predictions):
+        from models import Medicine
+
+        category_scores = Counter()
+
+        for symptom in matched_symptoms:
+            symptom_key = self.predictor._normalize_text(symptom)
+            for category in SYMPTOM_CATEGORY_HINTS.get(symptom_key, []):
+                category_scores[category] += 3
+
+        for prediction in disease_predictions:
+            disease_key = self.predictor._normalize_text(prediction.get("disease", ""))
+            weight = max(prediction.get("match_score", 0.0), 1.0) / 20.0
+            for keyword, categories in DISEASE_CATEGORY_HINTS.items():
+                if keyword in disease_key:
+                    for category in categories:
+                        category_scores[category] += weight
+
+        top_categories = [name for name, _score in category_scores.most_common(3)]
+        query = Medicine.query.filter(Medicine.stock > 0).filter(Medicine.requires_prescription.is_(False))
+        if top_categories:
+            query = query.filter(Medicine.category.in_(top_categories))
+        medicines = query.order_by(Medicine.price.asc()).limit(5).all()
+
+        suggestions = []
+        for medicine in medicines:
+            reason = f"Catalog suggestion for {medicine.category or 'General'} symptom relief"
+            suggestions.append(self._format_shop_suggestion(medicine, reason))
+        return suggestions
+
+    @staticmethod
+    def _format_shop_suggestion(medicine, reason):
+        return {
+            "name": medicine.name,
+            "generic_name": medicine.generic_name or "",
+            "category": medicine.category or "General",
+            "dosage": medicine.dosage or "Use as directed by label/doctor.",
+            "price": round(float(medicine.price), 2),
+            "requires_prescription": bool(medicine.requires_prescription),
+            "in_shop": True,
+            "medicine_id": medicine.id,
+            "reason": reason,
+        }
+
+    @staticmethod
+    def _format_external_suggestion(name, reason):
+        return {
+            "name": name,
+            "generic_name": "",
+            "category": "General",
+            "dosage": "Consult label/doctor before use.",
+            "price": None,
+            "requires_prescription": None,
+            "in_shop": False,
+            "medicine_id": None,
+            "reason": reason,
+        }
+
+    def _match_catalog_by_name(self, suggested_name, catalog):
+        suggested_key = self.predictor._normalize_text(suggested_name)
+        best = None
+        best_score = 0
+
+        for medicine in catalog:
+            name_key = self.predictor._normalize_text(medicine.name)
+            generic_key = self.predictor._normalize_text(medicine.generic_name or "")
+
+            if suggested_key in name_key or name_key in suggested_key:
+                score = min(len(suggested_key), len(name_key))
+                if score > best_score:
+                    best = medicine
+                    best_score = score
+            if generic_key and (suggested_key in generic_key or generic_key in suggested_key):
+                score = min(len(suggested_key), len(generic_key))
+                if score > best_score:
+                    best = medicine
+                    best_score = score
+
+        return best
+
+    def _recommend_medicines(self, user_input, matched_symptoms, disease_predictions):
+        from models import Medicine
+
+        medicine_scores = Counter()
+        medicine_reasons = defaultdict(set)
+        advice_scores = Counter()
+
+        if self.recommendation_data:
+            disease_to_medicines = self.recommendation_data["disease_to_medicines"]
+            disease_to_advice = self.recommendation_data["disease_to_advice"]
+            token_to_medicines = self.recommendation_data["token_to_medicines"]
+
+            for prediction in disease_predictions[:3]:
+                disease_name = prediction.get("disease", "")
+                disease_key = self.predictor._normalize_text(disease_name)
+                weight = max(prediction.get("match_score", 0.0), 1.0) / 10.0
+
+                for medicine_name, frequency in disease_to_medicines.get(disease_key, Counter()).most_common(15):
+                    medicine_scores[medicine_name] += weight * frequency
+                    medicine_reasons[medicine_name].add(f"Commonly used for {disease_name}")
+
+                for advice, frequency in disease_to_advice.get(disease_key, Counter()).most_common(5):
+                    advice_scores[advice] += weight * frequency
+
+            for token in self.predictor._tokenize(user_input):
+                if len(token) < 4:
+                    continue
+                for medicine_name, frequency in token_to_medicines.get(token, Counter()).most_common(12):
+                    medicine_scores[medicine_name] += 0.25 * frequency
+                    medicine_reasons[medicine_name].add(f"Related to symptom keyword '{token}'")
+
+        suggestions = []
+        seen_shop_ids = set()
+        seen_external_names = set()
+        catalog = Medicine.query.filter(Medicine.stock > 0).all()
+
+        for medicine_name, _score in medicine_scores.most_common(16):
+            match = self._match_catalog_by_name(medicine_name, catalog)
+            reason = "; ".join(sorted(medicine_reasons[medicine_name])) or "Suggested from symptom-treatment data"
+
+            if match:
+                if match.id in seen_shop_ids:
+                    continue
+                seen_shop_ids.add(match.id)
+                suggestions.append(self._format_shop_suggestion(match, reason))
+            else:
+                key = self.predictor._normalize_text(medicine_name)
+                if key in seen_external_names:
+                    continue
+                seen_external_names.add(key)
+                suggestions.append(self._format_external_suggestion(medicine_name, reason))
+
+            if len(suggestions) >= 6:
+                break
+
+        if not suggestions:
+            suggestions = self._category_recommendations(matched_symptoms, disease_predictions)
+
+        care_advice = [advice for advice, _score in advice_scores.most_common(3)]
+        if not care_advice and matched_symptoms:
+            care_advice = [
+                "Stay hydrated and rest as much as possible.",
+                "Follow medicine labels carefully and avoid self-medicating beyond recommended doses.",
+            ]
+
+        return suggestions, care_advice
+
     def analyze_symptoms(self, user_input):
-        """Analyze user input and return medical suggestions with a friendly tone."""
-        user_input_lower = user_input.lower().strip()
+        """Analyze symptoms with disease prediction and medicine recommendation."""
+        user_input_lower = self.predictor._normalize_text(user_input)
 
         if not user_input_lower:
             return {
                 "success": False,
-                "message": "Hey there! 👋 Just type in how you're feeling and I'll do my best to help!",
-                "disclaimer": self.DISCLAIMER
+                "message": "Type the symptoms you are having and I will suggest diseases and medicines.",
+                "disclaimer": self.DISCLAIMER,
             }
 
-        # Check for order intent first
         order_response = self._check_order_intent(user_input_lower)
         if order_response:
             return order_response
 
-        # Check for casual conversation first
         chat_response = self._check_casual_chat(user_input_lower)
         if chat_response:
             return chat_response
 
-        # Find matching symptoms
-        matched_symptoms = []
-        for symptom, keywords in self.keywords.items():
-            for keyword in keywords:
-                if keyword in user_input_lower:
-                    if symptom not in matched_symptoms:
-                        matched_symptoms.append(symptom)
-                    break
+        try:
+            prediction = self.predictor.predict(user_input)
+        except FileNotFoundError as error:
+            return {
+                "success": False,
+                "message": str(error),
+                "disclaimer": self.DISCLAIMER,
+            }
+
+        matched_symptoms = prediction["matched_symptoms"]
+        disease_predictions = prediction["predictions"]
 
         if not matched_symptoms:
             return {
                 "success": False,
                 "message": (
-                    "Hmm, I wasn't quite able to pinpoint specific symptoms from what you said. 🤔\n\n"
-                    "No worries though! Could you try describing it a bit differently? "
-                    "Here are some examples:\n\n"
-                    "• \"I have a headache and fever\"\n"
-                    "• \"My stomach hurts and I feel bloated\"\n"
-                    "• \"I have a cough and sore throat\"\n"
-                    "• \"I can't sleep at night\"\n"
-                    "• \"I have a skin rash with itching\"\n\n"
-                    "If your symptoms feel serious or unusual, please visit a doctor right away. "
-                    "Your safety always comes first! 💙"
+                    "I could not confidently map your text to known symptoms.\n\n"
+                    "Try being more explicit, for example:\n"
+                    "• \"I have fever, cough, and sore throat\"\n"
+                    "• \"I feel anxious, dizzy, and shortness of breath\"\n"
+                    "• \"I have a skin rash with itching\"\n"
+                    "• \"I have stomach pain, nausea, and diarrhea\""
                 ),
-                "disclaimer": self.DISCLAIMER
+                "disclaimer": self.DISCLAIMER,
             }
 
-        # Pick a friendly intro
-        if len(matched_symptoms) > 1:
-            empathy_msg = random.choice(EMPATHY_MULTIPLE)
-        else:
-            empathy_msg = random.choice(EMPATHY_SINGLE)
+        medicine_suggestions, care_advice = self._recommend_medicines(user_input, matched_symptoms, disease_predictions)
 
-        # Build response
-        results = []
-        all_medicines_suggested = []
-
-        for symptom in matched_symptoms:
-            data = self.database.get(symptom, {})
-            if data:
-                result = {
-                    "symptom": symptom.title(),
-                    "possible_conditions": data.get("conditions", []),
-                    "medicines": data.get("medicines", []),
-                    "home_remedies": data.get("home_remedies", []),
-                    "when_to_see_doctor": data.get("when_to_see_doctor", "")
-                }
-                results.append(result)
-                all_medicines_suggested.extend(data.get("medicines", []))
+        empathy_message = random.choice(EMPATHY_MULTIPLE if len(matched_symptoms) > 1 else EMPATHY_SINGLE)
+        follow_up = None
+        if len(matched_symptoms) < 2:
+            follow_up = "Add one or two more symptoms if possible. The model gets more reliable with richer details."
 
         return {
             "success": True,
-            "empathy_message": empathy_msg,
-            "symptoms_detected": [s.title() for s in matched_symptoms],
-            "results": results,
-            "total_medicines_suggested": len(all_medicines_suggested),
-            "disclaimer": self.DISCLAIMER
+            "empathy_message": empathy_message,
+            "symptoms_detected": matched_symptoms,
+            "results": disease_predictions,
+            "medicine_suggestions": medicine_suggestions,
+            "care_advice": care_advice,
+            "urgent_warning": prediction["urgent_warning"],
+            "follow_up": follow_up,
+            "model": prediction["model"],
+            "disclaimer": self.DISCLAIMER,
         }
 
     def get_supported_symptoms(self):
-        """Return list of symptoms the agent can analyze."""
-        return list(self.database.keys())
+        """Return list of symptom features available in the trained disease dataset."""
+        try:
+            return self.predictor.get_supported_symptoms()
+        except FileNotFoundError:
+            return []
 
 
-# Singleton instance
 medical_agent = MedicalAIAgent()

@@ -347,39 +347,83 @@ async function sendMessage() {
     </div></div>`;
 
   } else if (data?.success) {
-    // ===== SYMPTOM ANALYSIS (existing behavior) =====
+    // ===== ML-BASED SYMPTOM ANALYSIS =====
     let html = `<div class="message message-bot"><div class="message-avatar">🤖</div><div>`;
 
     const empathy = data.empathy_message || "Here's what I found for you:";
-    html += `<div class="message-bubble">${empathy}<br><br>I detected: <strong>${data.symptoms_detected.join(', ')}</strong></div>`;
+    html += `<div class="message-bubble">${empathy}<br><br>I matched these symptoms: <strong>${data.symptoms_detected.join(', ')}</strong></div>`;
+
+    if (data.urgent_warning) {
+      html += `<p style="font-size:0.82rem;margin-top:10px;color:var(--danger);background:#FEF2F2;padding:10px 12px;border-radius:10px"><strong>🏥 Seek medical care:</strong> ${data.urgent_warning}</p>`;
+    }
 
     data.results.forEach(r => {
       html += `<div class="medical-result">`;
-      html += `<h4>🔍 ${r.symptom}</h4>`;
-      html += `<p style="font-size:0.85rem;margin-bottom:8px"><strong>This could be related to:</strong></p>`;
-      html += r.possible_conditions.map(c => `<span class="condition-tag">${c}</span>`).join('');
-      html += `<p style="font-size:0.85rem;margin:12px 0 6px"><strong>💊 Here are some medicines that might help:</strong></p>`;
-      r.medicines.forEach(m => {
-        html += `<div class="medicine-card-sm">`;
-        html += `<h5>✅ ${m.name}</h5>`;
-        html += `<p style="font-size:0.8rem;color:var(--text-light)">Generic: ${m.generic}</p>`;
-        html += `<p class="dosage">📋 Dosage: ${m.dosage}</p>`;
-        html += `<p style="font-size:0.8rem;margin-top:4px">📖 How to take: ${m.usage}</p>`;
-        html += `<p class="side-fx">⚠️ Watch out for: ${m.side_effects.join(', ')}</p>`;
-        html += `<p style="font-size:0.78rem;color:var(--warning);margin-top:4px">🛡️ Important: ${m.precautions.join(' • ')}</p>`;
-        html += `</div>`;
-      });
-      html += `<p style="font-size:0.85rem;margin:12px 0 6px"><strong>🏠 Natural remedies to try:</strong></p>`;
-      html += r.home_remedies.map(h => `<span class="home-remedy-tag">🌿 ${h}</span>`).join(' ');
-      if (r.when_to_see_doctor) {
-        html += `<p style="font-size:0.82rem;margin-top:10px;color:var(--danger);background:#FEF2F2;padding:8px 12px;border-radius:8px"><strong>🏥 See a doctor if:</strong> ${r.when_to_see_doctor}</p>`;
-      }
+      html += `<h4>🧠 ${r.disease}</h4>`;
+      html += `<p style="font-size:0.85rem;margin-bottom:6px"><strong>Model match score:</strong> ${r.match_score}%</p>`;
+      html += `<div style="height:8px;background:#E5E7EB;border-radius:999px;overflow:hidden;margin-bottom:10px"><div style="height:100%;width:${Math.min(r.match_score, 100)}%;background:linear-gradient(90deg, #14B8A6, #0F766E)"></div></div>`;
+      html += `<p style="font-size:0.8rem;color:var(--text-light);margin-bottom:8px">Estimated global probability: ${r.probability}%</p>`;
+      html += `<p style="font-size:0.85rem;margin:10px 0 6px"><strong>Symptoms supporting this match:</strong></p>`;
+      html += r.supporting_symptoms.map(s => `<span class="condition-tag">${s}</span>`).join('');
       html += `</div>`;
     });
 
-    html += `<div class="message-bubble" style="margin-top:8px;background:#F0FDF4;border-radius:12px">
-      💚 I hope this helps you feel better! You can also <a href="shop.html" style="color:var(--primary);font-weight:600">order these medicines from our shop</a>.
-      <br><br>Is there anything else I can help with? 😊
+    if (data.medicine_suggestions?.length) {
+      html += `<div class="medical-result">`;
+      html += `<h4>💊 Suggested Medicines</h4>`;
+      html += `<p style="font-size:0.84rem;color:var(--text-light);margin-bottom:8px">These suggestions are based on your symptoms and predicted diseases.</p>`;
+
+      data.medicine_suggestions.forEach(m => {
+        html += `<div class="medicine-card-sm">`;
+        html += `<h5>${escapeHtml(m.name)}</h5>`;
+        if (m.generic_name) {
+          html += `<p style="font-size:0.8rem;color:var(--text-light)">Generic: ${escapeHtml(m.generic_name)}</p>`;
+        }
+        html += `<p class="dosage">Dosage: ${escapeHtml(m.dosage || 'Use as directed')}</p>`;
+        html += `<p class="side-fx">Category: ${escapeHtml(m.category || 'General')}</p>`;
+        if (m.reason) {
+          html += `<p style="font-size:0.78rem;color:var(--text-light);margin-top:4px">Why suggested: ${escapeHtml(m.reason)}</p>`;
+        }
+
+        if (m.in_shop && m.medicine_id) {
+          const priceText = typeof m.price === 'number' ? ` | Price: ₹${m.price.toFixed(2)}` : '';
+          html += `<p style="font-size:0.8rem;color:var(--primary);margin-top:4px">Available in shop${priceText}</p>`;
+          html += `<button class="btn btn-primary btn-sm mt-1" onclick="confirmChatOrder(${m.medicine_id}, '', 1)">Order This Medicine</button>`;
+        } else {
+          html += `<p style="font-size:0.8rem;color:var(--warning);margin-top:6px">Not currently available in our shop catalog.</p>`;
+        }
+        html += `</div>`;
+      });
+      html += `</div>`;
+    }
+
+    if (data.care_advice?.length) {
+      html += `<div class="medical-result">`;
+      html += `<h4>🩺 Care Advice</h4>`;
+      data.care_advice.forEach(advice => {
+        html += `<p style="font-size:0.84rem;color:var(--text-light);margin-top:6px">• ${escapeHtml(advice)}</p>`;
+      });
+      html += `</div>`;
+    }
+
+    if (data.follow_up) {
+      html += `<div class="message-bubble" style="margin-top:8px">${data.follow_up}</div>`;
+    }
+
+    if (data.model) {
+      html += `<div class="message-bubble" style="margin-top:8px;background:#F0FDF4;border-radius:12px">
+        <strong>Model:</strong> ${data.model.name}<br>
+        <strong>Training data:</strong> ${data.model.rows.toLocaleString()} rows, ${data.model.diseases} diseases, ${data.model.symptom_features} symptom features.<br><br>
+        Use this as a guide only. If symptoms are severe, unusual, or getting worse, please speak with a doctor.
+      </div>`;
+    } else {
+      html += `<div class="message-bubble" style="margin-top:8px;background:#F0FDF4;border-radius:12px">
+        Use this as a guide only. If symptoms are severe, unusual, or getting worse, please speak with a doctor.
+      </div>`;
+    }
+
+    html += `<div class="message-bubble" style="margin-top:8px;background:#ECFDF5;border-radius:12px">
+      You can still <a href="shop.html" style="color:var(--primary);font-weight:600">browse the pharmacy</a> if you need symptom-relief products.
     </div>`;
     html += `<div class="disclaimer-box mt-1"><span>💙</span><span>${data.disclaimer}</span></div>`;
     html += `${speakerBtnHtml()}`;
@@ -590,4 +634,3 @@ async function loadOrders() {
 function escapeHtml(text) {
   const d = document.createElement('div'); d.textContent = text; return d.innerHTML;
 }
-

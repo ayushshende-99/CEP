@@ -4,7 +4,7 @@ AI-powered health guidance and online pharmacy web application built with a mult
 
 ## Features
 
-- **🤖 AI Symptom Analysis** - Describe symptoms in natural language, get suggestions for conditions, OTC medicines, dosage, side effects, and home remedies
+- **🤖 AI Symptom Analysis** - Describe symptoms in natural language to get likely disease predictions and medicine suggestions
 - **💊 Online Pharmacy** - Browse 18+ medicines across 7 categories with search and filters
 - **🛒 Cart & Checkout** - Add to cart, simulated payment, and order placement
 - **📦 Order Tracking** - Real-time order status with visual timeline (Ordered → Confirmed → Packed → Shipped → Out for Delivery → Delivered)
@@ -19,7 +19,7 @@ AI-powered health guidance and online pharmacy web application built with a mult
 | Backend | Flask (Python) |
 | Database | SQLite (via SQLAlchemy) |
 | Auth | JWT (PyJWT) |
-| AI Engine | Rule-based symptom analysis (no external API needed) |
+| AI Engine | Dataset-trained Bernoulli Naive Bayes disease prediction |
 
 ## Project Structure
 
@@ -117,7 +117,7 @@ python app.py
 
 ## Multi-Agent Architecture
 
-1. **Medical AI Agent** - Analyzes 12+ symptom categories using keyword matching, suggests OTC medicines with dosage, side effects, precautions, and home remedies
+1. **Medical AI Agent** - Extracts symptoms from natural language and ranks likely diseases using a model trained from the disease-symptom dataset
 2. **E-commerce Agent** - Handles cart validation, stock management, order placement, and tracking ID generation
 3. **Tracking Agent** - Manages 6-stage order lifecycle with timeline visualization
 4. **Admin Agent** - Provides dashboard analytics, user management, and inventory CRUD
@@ -125,3 +125,13 @@ python app.py
 ## Safety & Disclaimer
 
 > ⚠️ This application provides AI-generated health suggestions only. It is NOT a substitute for professional medical advice, diagnosis, or treatment. Always consult a qualified healthcare professional before taking any medication.
+
+## ML Dataset Setup
+
+- The disease predictor trains from `Final_Augmented_dataset_Diseases_and_Symptoms.csv`.
+- Medicine recommendations are enriched from `medical_question_answer_dataset_50000.csv`.
+- By default it looks in `Cep/backend/data/` first, then falls back to `/Users/rutujabarde/Downloads/Final_Augmented_dataset_Diseases_and_Symptoms.csv`.
+- For medicine recommendation data, it looks in `Cep/backend/data/` first, then falls back to `/Users/rutujabarde/Downloads/medical_question_answer_dataset_50000.csv`.
+- You can also set `MEDICAL_DATASET_PATH` to point to the dataset explicitly.
+- You can set `MEDICAL_QA_DATASET_PATH` to point to the medicine recommendation dataset explicitly.
+- The trained model is cached automatically in `Cep/backend/data/disease_prediction_model.pkl` after the first run.
