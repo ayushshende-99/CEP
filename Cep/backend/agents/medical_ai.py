@@ -46,6 +46,7 @@ ORDER_NOISE_TOKENS = {
     "bottle",
     "bottles",
 }
+RX_TRUE_VALUES = {"1", "true", "yes", "y"}
 
 GREETING_KEYWORDS = [
     "hello",
@@ -291,11 +292,19 @@ class MedicalAIAgent:
 
     def _recommendation_dataset_path(self):
         base_dir = Path(__file__).resolve().parents[1]
-        local_data = base_dir / "data" / "medical_question_answer_dataset_50000.csv"
-        download_data = Path.home() / "Downloads" / "medical_question_answer_dataset_50000.csv"
+        primary_data = base_dir / "data" / "dataset_with_severity_and_prescription.csv"
+        legacy_data = base_dir / "data" / "medical_question_answer_dataset_50000.csv"
+        download_primary = Path.home() / "Downloads" / "dataset_with_severity_and_prescription.csv"
+        download_legacy = Path.home() / "Downloads" / "medical_question_answer_dataset_50000.csv"
         env_data = os.environ.get("MEDICAL_QA_DATASET_PATH")
 
-        candidates = [Path(env_data) if env_data else None, local_data, download_data]
+        candidates = [
+            Path(env_data) if env_data else None,
+            primary_data,
+            download_primary,
+            legacy_data,
+            download_legacy,
+        ]
         for candidate in candidates:
             if candidate and candidate.exists():
                 return candidate
@@ -309,6 +318,7 @@ class MedicalAIAgent:
         disease_to_medicines = defaultdict(Counter)
         disease_to_advice = defaultdict(Counter)
         token_to_medicines = defaultdict(Counter)
+        medicine_to_rx = defaultdict(Counter)
 
         with dataset_path.open("r", newline="", encoding="utf-8-sig") as handle:
             reader = csv.DictReader(handle)
@@ -317,6 +327,9 @@ class MedicalAIAgent:
                 medicine_text = (row.get("Recommended Medicines") or "").strip()
                 advice = (row.get("Advice") or "").strip()
                 symptom_question = (row.get("Symptoms/Question") or "").strip()
+                needs_prescription_text = (row.get("needs_prescription") or "").strip().lower()
+                has_prescription_flag = bool(needs_prescription_text)
+                requires_prescription = needs_prescription_text in RX_TRUE_VALUES
 
                 if not disease:
                     continue
@@ -328,6 +341,9 @@ class MedicalAIAgent:
 
                 for medicine_name in medicines:
                     disease_to_medicines[disease_key][medicine_name] += 1
+                    if has_prescription_flag:
+                        medicine_key = self.predictor._normalize_text(medicine_name)
+                        medicine_to_rx[medicine_key][requires_prescription] += 1
 
                 if advice:
                     disease_to_advice[disease_key][advice] += 1
@@ -343,6 +359,7 @@ class MedicalAIAgent:
             "disease_to_medicines": disease_to_medicines,
             "disease_to_advice": disease_to_advice,
             "token_to_medicines": token_to_medicines,
+            "medicine_to_rx": medicine_to_rx,
         }
 
     @staticmethod
@@ -534,29 +551,48 @@ class MedicalAIAgent:
             suggestions.append(self._format_shop_suggestion(medicine, reason))
         return suggestions
 
+    def _resolve_prescription_requirement(self, medicine_name):
+        if not self.recommendation_data:
+            return None
+        medicine_to_rx = self.recommendation_data.get("medicine_to_rx")
+        if not medicine_to_rx:
+            return None
+        medicine_key = self.predictor._normalize_text(medicine_name)
+        counts = medicine_to_rx.get(medicine_key)
+        if not counts:
+            return None
+        if counts[True] == counts[False]:
+            return None
+        return counts[True] > counts[False]
+
     @staticmethod
-    def _format_shop_suggestion(medicine, reason):
+    def _format_shop_suggestion(medicine, reason, requires_prescription=None):
+        resolved_requires_prescription = (
+            medicine.requires_prescription
+            if requires_prescription is None
+            else bool(requires_prescription)
+        )
         return {
             "name": medicine.name,
             "generic_name": medicine.generic_name or "",
             "category": medicine.category or "General",
             "dosage": medicine.dosage or "Use as directed by label/doctor.",
             "price": round(float(medicine.price), 2),
-            "requires_prescription": bool(medicine.requires_prescription),
+            "requires_prescription": bool(resolved_requires_prescription),
             "in_shop": True,
             "medicine_id": medicine.id,
             "reason": reason,
         }
 
     @staticmethod
-    def _format_external_suggestion(name, reason):
+    def _format_external_suggestion(name, reason, requires_prescription=None):
         return {
             "name": name,
             "generic_name": "",
             "category": "General",
             "dosage": "Consult label/doctor before use.",
             "price": None,
-            "requires_prescription": None,
+            "requires_prescription": requires_prescription,
             "in_shop": False,
             "medicine_id": None,
             "reason": reason,
@@ -623,18 +659,19 @@ class MedicalAIAgent:
         for medicine_name, _score in medicine_scores.most_common(16):
             match = self._match_catalog_by_name(medicine_name, catalog)
             reason = "; ".join(sorted(medicine_reasons[medicine_name])) or "Suggested from symptom-treatment data"
+            rx_override = self._resolve_prescription_requirement(medicine_name)
 
             if match:
                 if match.id in seen_shop_ids:
                     continue
                 seen_shop_ids.add(match.id)
-                suggestions.append(self._format_shop_suggestion(match, reason))
+                suggestions.append(self._format_shop_suggestion(match, reason, rx_override))
             else:
                 key = self.predictor._normalize_text(medicine_name)
                 if key in seen_external_names:
                     continue
                 seen_external_names.add(key)
-                suggestions.append(self._format_external_suggestion(medicine_name, reason))
+                suggestions.append(self._format_external_suggestion(medicine_name, reason, rx_override))
 
             if len(suggestions) >= 6:
                 break

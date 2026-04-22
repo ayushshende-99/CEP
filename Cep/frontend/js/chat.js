@@ -385,6 +385,12 @@ async function sendMessage() {
           html += `<p style="font-size:0.78rem;color:var(--text-light);margin-top:4px">Why suggested: ${escapeHtml(m.reason)}</p>`;
         }
 
+        if (m.requires_prescription === true) {
+          html += `<div class="prescription-required-badge">⚠️ Prescription Required</div>`;
+        } else if (m.requires_prescription === false) {
+          html += `<div class="no-prescription-badge">✅ No Prescription Needed</div>`;
+        }
+
         if (m.in_shop && m.medicine_id) {
           const priceText = typeof m.price === 'number' ? ` | Price: ₹${m.price.toFixed(2)}` : '';
           html += `<p style="font-size:0.8rem;color:var(--primary);margin-top:4px">Available in shop${priceText}</p>`;
