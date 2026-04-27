@@ -17,11 +17,10 @@ class AdminAgent:
         total_revenue = db.session.query(func.sum(Order.total_price)).scalar() or 0
 
         # Orders by status
-        status_counts = {}
-        statuses = ["Ordered", "Confirmed", "Packed", "Shipped", "Out for Delivery", "Delivered"]
-        for status in statuses:
-            count = Order.query.filter_by(status=status).count()
-            status_counts[status] = count
+        status_counts = {
+            status: count
+            for status, count in db.session.query(Order.status, func.count(Order.id)).group_by(Order.status).all()
+        }
 
         # Recent orders (last 10)
         recent_orders = Order.query.order_by(Order.created_at.desc()).limit(10).all()

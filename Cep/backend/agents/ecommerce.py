@@ -4,6 +4,7 @@ import random
 import string
 from datetime import datetime
 from models import db, Medicine, Order
+from agents.pharmacy_ai import pharmacy_ai
 
 
 class EcommerceAgent:
@@ -84,7 +85,13 @@ class EcommerceAgent:
         }
 
     @staticmethod
-    def place_order(user_id, cart_items, shipping_address="", payment_method="Cash on Delivery"):
+    def place_order(
+        user_id,
+        cart_items,
+        shipping_address="",
+        payment_method="Cash on Delivery",
+        prescription_submission_id=None,
+    ):
         """Place an order and update stock."""
         validation = EcommerceAgent.validate_cart(cart_items)
 
@@ -111,19 +118,23 @@ class EcommerceAgent:
             user_id=user_id,
             items=json.dumps(validation['items']),
             total_price=validation['total_price'],
-            status='Ordered',
+            status='pending_verification',
+            pharmacist_review_status='pending',
+            prescription_submission_id=prescription_submission_id,
             tracking_id=tracking_id,
             shipping_address=shipping_address,
             payment_method=payment_method
         )
 
         db.session.add(order)
+        db.session.flush()
+        pharmacy_ai.create_order_verification_request(order)
         db.session.commit()
 
         return {
             'success': True,
             'order': order.to_dict(),
-            'message': f'Order placed successfully! Your tracking ID is {tracking_id}'
+            'message': f'Order created with pending verification. Tracking ID is {tracking_id}'
         }
 
     @staticmethod

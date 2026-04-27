@@ -3,6 +3,8 @@ from flask import Blueprint, request, jsonify
 from agents.admin import admin_agent
 from agents.tracking import tracking_agent
 from routes.auth import admin_required
+from models import db, Order, PharmacistMessage, PharmacistRequest, PrescriptionSubmission
+from datetime import datetime
 
 admin_bp = Blueprint('admin', __name__)
 
@@ -84,3 +86,150 @@ def delete_medicine(current_user, medicine_id):
     if admin_agent.delete_medicine(medicine_id):
         return jsonify({'success': True, 'message': 'Medicine deleted'})
     return jsonify({'success': False, 'message': 'Medicine not found'}), 404
+
+
+@admin_bp.route('/pharmacist/requests', methods=['GET'])
+@admin_required
+def pharmacist_requests(current_user):
+    """View all pharmacist requests with optional status filter."""
+    status = request.args.get('status')
+    query = PharmacistRequest.query.order_by(PharmacistRequest.created_at.desc())
+    if status:
+        query = query.filter_by(status=status)
+    rows = query.all()
+    return jsonify({'success': True, 'requests': [row.to_dict() for row in rows], 'count': len(rows)})
+
+
+@admin_bp.route('/pharmacist/orders', methods=['GET'])
+@admin_required
+def pharmacist_orders(current_user):
+    """View all orders in pharmacist dashboard."""
+    status = request.args.get('status')
+    query = Order.query.order_by(Order.created_at.desc())
+    if status:
+        query = query.filter_by(status=status)
+    rows = query.all()
+    return jsonify({'success': True, 'orders': [row.to_dict() for row in rows], 'count': len(rows)})
+
+
+@admin_bp.route('/pharmacist/requests/<int:request_id>/accept', methods=['PUT'])
+@admin_required
+def accept_pharmacist_request(current_user, request_id):
+    row = PharmacistRequest.query.get(request_id)
+    if not row:
+        return jsonify({'success': False, 'message': 'Request not found'}), 404
+
+    data = request.get_json() or {}
+    row.status = 'accepted'
+    row.message = data.get('message', row.message)
+    row.updated_at = datetime.utcnow()
+
+    if row.order_id:
+        order = Order.query.get(row.order_id)
+        if order:
+            order.status = 'accepted'
+            order.pharmacist_review_status = 'accepted'
+            order.pharmacist_note = data.get('message', order.pharmacist_note)
+
+    db.session.commit()
+    return jsonify({'success': True, 'request': row.to_dict()})
+
+
+@admin_bp.route('/pharmacist/requests/<int:request_id>/reject', methods=['PUT'])
+@admin_required
+def reject_pharmacist_request(current_user, request_id):
+    row = PharmacistRequest.query.get(request_id)
+    if not row:
+        return jsonify({'success': False, 'message': 'Request not found'}), 404
+
+    data = request.get_json() or {}
+    reason = data.get('reason')
+    if reason not in {'out_of_stock', 'invalid_prescription', 'not_available'}:
+        return jsonify({'success': False, 'message': 'Valid reason is required'}), 400
+
+    row.status = 'rejected'
+    row.reason = reason
+    row.message = data.get('message', row.message)
+    row.updated_at = datetime.utcnow()
+
+    if row.order_id:
+        order = Order.query.get(row.order_id)
+        if order:
+            order.status = 'rejected'
+            order.pharmacist_review_status = 'rejected'
+            order.pharmacist_rejection_reason = reason
+            order.pharmacist_note = data.get('message', order.pharmacist_note)
+
+    db.session.commit()
+    return jsonify({'success': True, 'request': row.to_dict()})
+
+
+@admin_bp.route('/pharmacist/orders/<int:order_id>/accept', methods=['PUT'])
+@admin_required
+def accept_order(current_user, order_id):
+    data = request.get_json() or {}
+    order = Order.query.get(order_id)
+    if not order:
+        return jsonify({'success': False, 'message': 'Order not found'}), 404
+
+    order.status = 'accepted'
+    order.pharmacist_review_status = 'accepted'
+    order.pharmacist_note = data.get('message', order.pharmacist_note)
+    db.session.commit()
+    return jsonify({'success': True, 'order': order.to_dict()})
+
+
+@admin_bp.route('/pharmacist/orders/<int:order_id>/reject', methods=['PUT'])
+@admin_required
+def reject_order(current_user, order_id):
+    data = request.get_json() or {}
+    reason = data.get('reason')
+    if reason not in {'out_of_stock', 'invalid_prescription', 'not_available'}:
+        return jsonify({'success': False, 'message': 'Valid reason is required'}), 400
+
+    order = Order.query.get(order_id)
+    if not order:
+        return jsonify({'success': False, 'message': 'Order not found'}), 404
+
+    order.status = 'rejected'
+    order.pharmacist_review_status = 'rejected'
+    order.pharmacist_rejection_reason = reason
+    order.pharmacist_note = data.get('message', order.pharmacist_note)
+    db.session.commit()
+    return jsonify({'success': True, 'order': order.to_dict()})
+
+
+@admin_bp.route('/pharmacist/prescriptions/<int:submission_id>/approve', methods=['PUT'])
+@admin_required
+def approve_prescription(current_user, submission_id):
+    data = request.get_json() or {}
+    submission = PrescriptionSubmission.query.get(submission_id)
+    if not submission:
+        return jsonify({'success': False, 'message': 'Prescription submission not found'}), 404
+
+    submission.validation_status = 'approved'
+    submission.extraction_status = submission.extraction_status or 'readable'
+    submission.pharmacist_note = data.get('message', submission.pharmacist_note)
+    submission.reviewed_at = datetime.utcnow()
+    db.session.commit()
+    return jsonify({'success': True, 'prescription_submission': submission.to_dict()})
+
+
+@admin_bp.route('/pharmacist/users/<int:user_id>/message', methods=['POST'])
+@admin_required
+def send_user_message(current_user, user_id):
+    data = request.get_json() or {}
+    message = (data.get('message') or '').strip()
+    if not message:
+        return jsonify({'success': False, 'message': 'message is required'}), 400
+
+    row = PharmacistMessage(
+        user_id=user_id,
+        order_id=data.get('order_id'),
+        request_id=data.get('request_id'),
+        sender='pharmacist',
+        message=message,
+    )
+    db.session.add(row)
+    db.session.commit()
+    return jsonify({'success': True, 'message_record': row.to_dict()}), 201

@@ -3,21 +3,23 @@ from models import db, Order
 from datetime import datetime
 
 ORDER_STATUSES = [
-    "Ordered",
-    "Confirmed",
+    "pending_verification",
+    "accepted",
     "Packed",
     "Shipped",
     "Out for Delivery",
-    "Delivered"
+    "Delivered",
+    "rejected",
 ]
 
 STATUS_DESCRIPTIONS = {
-    "Ordered": "Your order has been placed successfully.",
-    "Confirmed": "Your order has been confirmed and is being prepared.",
+    "pending_verification": "Your order is pending pharmacist verification.",
+    "accepted": "Your order has been accepted by the pharmacist and is being prepared.",
     "Packed": "Your order has been packed and is ready for shipping.",
     "Shipped": "Your order is on its way! It has been handed to the delivery partner.",
     "Out for Delivery": "Your order is out for delivery. It will arrive soon!",
-    "Delivered": "Your order has been delivered successfully. Thank you!"
+    "Delivered": "Your order has been delivered successfully. Thank you!",
+    "rejected": "Your order was rejected by pharmacist verification."
 }
 
 
@@ -48,6 +50,22 @@ class TrackingAgent:
                 'completed': i <= current_status_index,
                 'current': i == current_status_index
             })
+
+        if order.status == 'rejected':
+            timeline = [
+                {
+                    'status': 'pending_verification',
+                    'description': self.descriptions['pending_verification'],
+                    'completed': True,
+                    'current': False,
+                },
+                {
+                    'status': 'rejected',
+                    'description': self.descriptions['rejected'],
+                    'completed': True,
+                    'current': True,
+                },
+            ]
 
         return {
             'success': True,

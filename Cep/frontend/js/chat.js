@@ -287,163 +287,130 @@ async function sendMessage() {
   const data = await apiCall('/medical/analyze', { method: 'POST', body: JSON.stringify({ symptoms: msg }) });
   document.getElementById(typingId)?.remove();
 
-  if (data?.is_order && data?.success && data?.medicine) {
-    // ===== ORDER FLOW: Medicine found =====
-    const med = data.medicine;
-    const rxRequired = data.requires_prescription;
-    const qty = data.quantity || 1;
-    const totalPrice = (med.price * qty).toFixed(2);
-
-    let html = `<div class="message message-bot"><div class="message-avatar">🤖</div><div>`;
-    html += `<div class="message-bubble">${renderBotMessage(data.message)}</div>`;
-
-    // Medicine order card
-    html += `<div class="order-card-chat">`;
-    html += `<div class="order-card-header">`;
-    html += `<span class="order-card-emoji">${med.image_url || '💊'}</span>`;
-    html += `<div>`;
-    html += `<h4>${med.name}</h4>`;
-    html += `<p class="order-card-category">${med.category || 'General'}</p>`;
-    html += `</div>`;
-    html += `</div>`;
-    html += `<div class="order-card-details">`;
-    html += `<div class="order-card-price">₹${med.price.toFixed(2)} × ${qty} = ₹${totalPrice}</div>`;
-    html += `<div class="order-card-stock ${med.stock > 0 ? '' : 'out'}">📦 ${med.stock > 0 ? med.stock + ' in stock' : 'Out of stock'}</div>`;
-    html += `</div>`;
-
-    if (rxRequired) {
-      // Prescription required — show upload area
-      html += `<div class="prescription-required-badge">⚠️ Prescription Required</div>`;
-      html += `<p style="font-size:0.82rem;color:var(--text-light);margin:8px 0">Upload your prescription to proceed. Name the file with the medicine name and today's date.</p>`;
-      html += `<div class="prescription-upload-area" id="rxUpload_${med.id}">`;
-      html += `<div class="rx-upload-icon">📋</div>`;
-      html += `<p>Upload Prescription Image</p>`;
-      html += `<p class="rx-hint">File should contain medicine name & today's date<br>e.g. <code>${med.name.split(' ')[0].split(',')[0].toLowerCase()}_${new Date().toISOString().split('T')[0]}.jpg</code></p>`;
-      html += `<input type="file" id="rxFile_${med.id}" accept="image/*,.pdf" onchange="handleRxFileSelect(${med.id}, this)" style="display:none">`;
-      html += `<button class="btn btn-outline btn-sm" onclick="document.getElementById('rxFile_${med.id}').click()">📤 Choose File</button>`;
-      html += `<div id="rxFileName_${med.id}" class="rx-file-name" style="display:none"></div>`;
-      html += `<button class="btn btn-primary btn-sm mt-1" id="rxSubmitBtn_${med.id}" onclick="uploadPrescription(${med.id}, ${qty})" style="display:none">✅ Upload & Verify Prescription</button>`;
-      html += `</div>`;
-    } else {
-      // No prescription needed — show confirm button
-      html += `<div class="no-prescription-badge">✅ No Prescription Needed</div>`;
-      html += `<button class="btn btn-primary btn-sm w-full mt-1" onclick="confirmChatOrder(${med.id}, '${escapeHtml(med.name)}', ${qty})">🛒 Confirm Order (${qty})</button>`;
-    }
-
-    html += `</div>`; // close order-card-chat
-    html += `${speakerBtnHtml()}</div></div>`;
-    chatMessages.innerHTML += html;
-
-  } else if (data?.is_order && !data?.success) {
-    // ===== ORDER FLOW: Medicine not found =====
-    let formattedMsg = renderBotMessage(data.message);
+  if (!data?.success) {
+    // ===== ERROR CASE =====
+    let formattedMsg = renderBotMessage(data?.message || "I'm not sure about that. Could you describe your symptoms differently?");
     chatMessages.innerHTML += `<div class="message message-bot"><div class="message-avatar">🤖</div><div>
       <div class="message-bubble">${formattedMsg}</div>
       ${speakerBtnHtml()}
       <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
-        ${ORDER_QUICK_REPLIES.map(q => `<button class="quick-reply-chip" style="border-color:var(--secondary);color:var(--secondary)" onclick="sendQuickReply('${q}')">${q}</button>`).join('')}
-        <a href="shop.html" class="btn btn-outline btn-sm">🏪 Browse Shop</a>
+        ${QUICK_REPLIES.slice(0, 3).map(q => `<button class="quick-reply-chip" onclick="sendQuickReply('${q}')">${q}</button>`).join('')}
       </div>
     </div></div>`;
 
-  } else if (data?.success) {
-    // ===== ML-BASED SYMPTOM ANALYSIS =====
+  } else if (data?.severity === "serious") {
+    // ===== SERIOUS CONDITION - CONSULT DOCTOR =====
     let html = `<div class="message message-bot"><div class="message-avatar">🤖</div><div>`;
+    html += `<div class="message-bubble" style="background:#FEF2F2;border-left:4px solid var(--danger)">`;
+    html += `<strong>🏥 ${data.disease}</strong><br>`;
+    html += `This condition requires professional medical attention.<br><br>`;
+    html += `<strong>⚠️ Please consult a doctor immediately.</strong>`;
+    html += `</div>`;
+    if (data.advice) {
+      html += `<p style="font-size:0.85rem;margin-top:10px;color:var(--text-light)"><strong>In the meantime:</strong> ${escapeHtml(data.advice)}</p>`;
+    }
+    html += `${speakerBtnHtml()}`;
+    html += `<div class="mt-1"><a href="shop.html" class="btn btn-outline btn-sm">Browse Medicines</a></div>`;
+    html += `</div></div>`;
+    chatMessages.innerHTML += html;
 
-    const empathy = data.empathy_message || "Here's what I found for you:";
-    html += `<div class="message-bubble">${empathy}<br><br>I matched these symptoms: <strong>${data.symptoms_detected.join(', ')}</strong></div>`;
+  } else if (data?.severity === "unknown") {
+    // ===== UNKNOWN SEVERITY - PHARMACIST REVIEW =====
+    let html = `<div class="message message-bot"><div class="message-avatar">🤖</div><div>`;
+    html += `<div class="message-bubble">`;
+    html += `<strong>🔍 ${data.disease || 'Uncertain Condition'}</strong><br>`;
+    html += `${escapeHtml(data.message)}<br><br>`;
+    html += `A pharmacist will review your case and get back to you soon.`;
+    html += `</div>`;
+    if (data.advice) {
+      html += `<p style="font-size:0.85rem;margin-top:10px;color:var(--text-light)"><strong>Advice:</strong> ${escapeHtml(data.advice)}</p>`;
+    }
+    if (data.pharmacist_request) {
+      html += `<p style="font-size:0.78rem;margin-top:8px;color:var(--primary)"><strong>Request ID:</strong> ${data.pharmacist_request.id}</p>`;
+    }
+    html += `${speakerBtnHtml()}`;
+    html += `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
+      ${QUICK_REPLIES.slice(0, 3).map(q => `<button class="quick-reply-chip" onclick="sendQuickReply('${q}')">${q}</button>`).join('')}
+    </div>`;
+    html += `</div></div>`;
+    chatMessages.innerHTML += html;
 
-    if (data.urgent_warning) {
-      html += `<p style="font-size:0.82rem;margin-top:10px;color:var(--danger);background:#FEF2F2;padding:10px 12px;border-radius:10px"><strong>🏥 Seek medical care:</strong> ${data.urgent_warning}</p>`;
+  } else if (data?.success) {
+    // ===== MILD CONDITION - SHOW MEDICINES =====
+    let html = `<div class="message message-bot"><div class="message-avatar">🤖</div><div>`;
+    
+    // Main message
+    html += `<div class="message-bubble">`;
+    html += `<strong>✅ ${data.disease}</strong><br>`;
+    html += `${escapeHtml(data.message)}<br><br>`;
+    html += `Severity: <strong>${data.severity}</strong>`;
+    html += `</div>`;
+
+    // Advice
+    if (data.advice) {
+      html += `<p style="font-size:0.85rem;margin-top:10px;color:var(--text-light);background:#F0FDF4;padding:10px 12px;border-radius:10px">💡 ${escapeHtml(data.advice)}</p>`;
     }
 
-    data.results.forEach(r => {
-      html += `<div class="medical-result">`;
-      html += `<h4>🧠 ${r.disease}</h4>`;
-      html += `<p style="font-size:0.85rem;margin-bottom:6px"><strong>Model match score:</strong> ${r.match_score}%</p>`;
-      html += `<div style="height:8px;background:#E5E7EB;border-radius:999px;overflow:hidden;margin-bottom:10px"><div style="height:100%;width:${Math.min(r.match_score, 100)}%;background:linear-gradient(90deg, #14B8A6, #0F766E)"></div></div>`;
-      html += `<p style="font-size:0.8rem;color:var(--text-light);margin-bottom:8px">Estimated global probability: ${r.probability}%</p>`;
-      html += `<p style="font-size:0.85rem;margin:10px 0 6px"><strong>Symptoms supporting this match:</strong></p>`;
-      html += r.supporting_symptoms.map(s => `<span class="condition-tag">${s}</span>`).join('');
-      html += `</div>`;
-    });
-
-    if (data.medicine_suggestions?.length) {
-      html += `<div class="medical-result">`;
-      html += `<h4>💊 Suggested Medicines</h4>`;
-      html += `<p style="font-size:0.84rem;color:var(--text-light);margin-bottom:8px">These suggestions are based on your symptoms and predicted diseases.</p>`;
-
-      data.medicine_suggestions.forEach(m => {
-        html += `<div class="medicine-card-sm">`;
+    // Show OTC medicines if available
+    if (data.otc_medicines && data.otc_medicines.length > 0) {
+      html += `<div class="medical-result" style="margin-top:12px">`;
+      html += `<h4>✅ Over-the-Counter Medicines</h4>`;
+      html += `<p style="font-size:0.84rem;color:var(--text-light);margin-bottom:8px">No prescription needed</p>`;
+      
+      data.otc_medicines.forEach(m => {
+        const catalog = m.catalog || {};
+        html += `<div class="medicine-card-sm" style="margin-top:8px">`;
         html += `<h5>${escapeHtml(m.name)}</h5>`;
-        if (m.generic_name) {
-          html += `<p style="font-size:0.8rem;color:var(--text-light)">Generic: ${escapeHtml(m.generic_name)}</p>`;
+        if (catalog.generic_name) {
+          html += `<p style="font-size:0.8rem;color:var(--text-light)">Generic: ${escapeHtml(catalog.generic_name)}</p>`;
         }
-        html += `<p class="dosage">Dosage: ${escapeHtml(m.dosage || 'Use as directed')}</p>`;
-        html += `<p class="side-fx">Category: ${escapeHtml(m.category || 'General')}</p>`;
-        if (m.reason) {
-          html += `<p style="font-size:0.78rem;color:var(--text-light);margin-top:4px">Why suggested: ${escapeHtml(m.reason)}</p>`;
+        html += `<p class="dosage">Dosage: ${escapeHtml(catalog.dosage || 'Use as directed')}</p>`;
+        if (catalog.price) {
+          html += `<p style="color:var(--primary);font-weight:600">₹${parseFloat(catalog.price).toFixed(2)}</p>`;
         }
-
-        if (m.requires_prescription === true) {
-          html += `<div class="prescription-required-badge">⚠️ Prescription Required</div>`;
-        } else if (m.requires_prescription === false) {
-          html += `<div class="no-prescription-badge">✅ No Prescription Needed</div>`;
-        }
-
-        if (m.in_shop && m.medicine_id) {
-          const priceText = typeof m.price === 'number' ? ` | Price: ₹${m.price.toFixed(2)}` : '';
-          html += `<p style="font-size:0.8rem;color:var(--primary);margin-top:4px">Available in shop${priceText}</p>`;
-          html += `<button class="btn btn-primary btn-sm mt-1" onclick="confirmChatOrder(${m.medicine_id}, '', 1)">Order This Medicine</button>`;
-        } else {
-          html += `<p style="font-size:0.8rem;color:var(--warning);margin-top:6px">Not currently available in our shop catalog.</p>`;
+        if (m.medicine_id) {
+          html += `<button class="btn btn-primary btn-sm mt-1" onclick="confirmChatOrder(${m.medicine_id}, '${escapeHtml(m.name)}', 1)">🛒 Order</button>`;
         }
         html += `</div>`;
       });
       html += `</div>`;
     }
 
-    if (data.care_advice?.length) {
-      html += `<div class="medical-result">`;
-      html += `<h4>🩺 Care Advice</h4>`;
-      data.care_advice.forEach(advice => {
-        html += `<p style="font-size:0.84rem;color:var(--text-light);margin-top:6px">• ${escapeHtml(advice)}</p>`;
+    // Show prescription medicines if available
+    if (data.prescription_medicines && data.prescription_medicines.length > 0) {
+      html += `<div class="medical-result" style="margin-top:12px">`;
+      html += `<h4>⚠️ Prescription Medicines</h4>`;
+      html += `<p style="font-size:0.84rem;color:var(--text-light);margin-bottom:8px">Requires valid prescription</p>`;
+      
+      data.prescription_medicines.forEach(m => {
+        const catalog = m.catalog || {};
+        html += `<div class="medicine-card-sm" style="margin-top:8px">`;
+        html += `<h5>${escapeHtml(m.name)}</h5>`;
+        if (catalog.generic_name) {
+          html += `<p style="font-size:0.8rem;color:var(--text-light)">Generic: ${escapeHtml(catalog.generic_name)}</p>`;
+        }
+        html += `<p class="dosage">Dosage: ${escapeHtml(catalog.dosage || 'Use as directed')}</p>`;
+        if (catalog.price) {
+          html += `<p style="color:var(--primary);font-weight:600">₹${parseFloat(catalog.price).toFixed(2)}</p>`;
+        }
+        html += `<div class="prescription-required-badge">⚠️ Prescription Required</div>`;
+        if (m.medicine_id) {
+          html += `<button class="btn btn-primary btn-sm mt-1" onclick="uploadPrescriptionPrompt(${m.medicine_id}, '${escapeHtml(m.name)}')">📋 Upload Prescription</button>`;
+        }
+        html += `</div>`;
       });
       html += `</div>`;
     }
 
-    if (data.follow_up) {
-      html += `<div class="message-bubble" style="margin-top:8px">${data.follow_up}</div>`;
+    if (!data.otc_medicines || data.otc_medicines.length === 0) {
+      if (!data.prescription_medicines || data.prescription_medicines.length === 0) {
+        html += `<p style="font-size:0.85rem;margin-top:10px;color:var(--text-light)">No medicines found for this condition in our database.</p>`;
+      }
     }
 
-    if (data.model) {
-      html += `<div class="message-bubble" style="margin-top:8px;background:#F0FDF4;border-radius:12px">
-        <strong>Model:</strong> ${data.model.name}<br>
-        <strong>Training data:</strong> ${data.model.rows.toLocaleString()} rows, ${data.model.diseases} diseases, ${data.model.symptom_features} symptom features.<br><br>
-        Use this as a guide only. If symptoms are severe, unusual, or getting worse, please speak with a doctor.
-      </div>`;
-    } else {
-      html += `<div class="message-bubble" style="margin-top:8px;background:#F0FDF4;border-radius:12px">
-        Use this as a guide only. If symptoms are severe, unusual, or getting worse, please speak with a doctor.
-      </div>`;
-    }
-
-    html += `<div class="message-bubble" style="margin-top:8px;background:#ECFDF5;border-radius:12px">
-      You can still <a href="shop.html" style="color:var(--primary);font-weight:600">browse the pharmacy</a> if you need symptom-relief products.
-    </div>`;
-    html += `<div class="disclaimer-box mt-1"><span>💙</span><span>${data.disclaimer}</span></div>`;
     html += `${speakerBtnHtml()}`;
-    html += `<div class="mt-1 flex gap-1" style="flex-wrap:wrap">
-      <a href="shop.html" class="btn btn-primary btn-sm">🛒 Order Medicines</a>
-      <button class="btn btn-outline btn-sm" onclick="sendQuickReply('thank you')">👍 Thanks!</button>
-    </div>`;
     html += `</div></div>`;
     chatMessages.innerHTML += html;
-
-  } else if (data?.is_chat) {
-    // ===== CASUAL CONVERSATION =====
-    let formattedMsg = renderBotMessage(data.message);
-    chatMessages.innerHTML += `<div class="message message-bot"><div class="message-avatar">🤖</div><div><div class="message-bubble">${formattedMsg}</div>${speakerBtnHtml()}</div></div>`;
 
   } else {
     // ===== UNRECOGNIZED — Friendly fallback =====
@@ -537,6 +504,110 @@ function handleRxFileSelect(medicineId, inputEl) {
   }
   if (submitBtn) {
     submitBtn.style.display = 'inline-flex';
+  }
+}
+
+function uploadPrescriptionPrompt(medicineId, medicineName) {
+  const chatMessages = document.getElementById('chatMessages');
+  const fileInputId = `rxFile_prompt_${medicineId}_${Date.now()}`;
+  
+  let html = `<div class="message message-user"><div class="message-avatar">😊</div><div class="message-bubble">I want to upload a prescription for ${escapeHtml(medicineName)}</div></div>`;
+  html += `<div class="message message-bot"><div class="message-avatar">🤖</div><div>`;
+  html += `<div class="message-bubble">Sure! Let me help you upload your prescription for <strong>${escapeHtml(medicineName)}</strong>.</div>`;
+  html += `<div class="prescription-upload-area" style="margin-top:12px" id="rxUpload_${medicineId}">`;
+  html += `<div class="rx-upload-icon">📋</div>`;
+  html += `<p>Upload Prescription Image</p>`;
+  html += `<p class="rx-hint">File should contain medicine name & today's date</p>`;
+  html += `<input type="file" id="${fileInputId}" accept="image/*,.pdf" onchange="handlePrescriptionFileSelect(${medicineId}, this, '${escapeHtml(medicineName)}')" style="display:none">`;
+  html += `<button class="btn btn-outline btn-sm" onclick="document.getElementById('${fileInputId}').click()">📤 Choose File</button>`;
+  html += `<div id="rxFileName_${medicineId}" class="rx-file-name" style="display:none"></div>`;
+  html += `<button class="btn btn-primary btn-sm mt-1" id="rxSubmitBtn_${medicineId}" onclick="uploadPrescriptionFromChat(${medicineId}, '${escapeHtml(medicineName)}')" style="display:none">✅ Upload & Verify</button>`;
+  html += `</div>`;
+  html += `${speakerBtnHtml()}`;
+  html += `</div></div>`;
+  
+  chatMessages.innerHTML += html;
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function handlePrescriptionFileSelect(medicineId, input, medicineName) {
+  if (!input.files[0]) return;
+  
+  const fileNameDiv = document.getElementById(`rxFileName_${medicineId}`);
+  const submitBtn = document.getElementById(`rxSubmitBtn_${medicineId}`);
+  
+  if (fileNameDiv) {
+    fileNameDiv.textContent = `📎 ${input.files[0].name} (${(input.files[0].size / 1024).toFixed(1)} KB)`;
+    fileNameDiv.style.display = 'block';
+  }
+  if (submitBtn) {
+    submitBtn.style.display = 'inline-flex';
+  }
+}
+
+async function uploadPrescriptionFromChat(medicineId, medicineName) {
+  const fileInputId = document.querySelector(`button[onclick*="uploadPrescriptionFromChat(${medicineId}"]`).previousElementSibling.previousElementSibling.id;
+  const fileInput = document.getElementById(fileInputId);
+  
+  if (!fileInput || !fileInput.files[0]) {
+    showToast('Please select a prescription file first.', 'error');
+    return;
+  }
+
+  const file = fileInput.files[0];
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('medicine_id', medicineId);
+
+  const submitBtn = document.getElementById(`rxSubmitBtn_${medicineId}`);
+  submitBtn.disabled = true;
+  submitBtn.innerHTML = '<span class="loader"></span> Uploading...';
+
+  try {
+    const token = getToken();
+    const res = await fetch(`http://127.0.0.1:5000/api/medical/upload-prescription`, {
+      method: 'POST',
+      headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+      body: formData
+    });
+
+    const data = await res.json();
+    const chatMessages = document.getElementById('chatMessages');
+
+    if (data?.success) {
+      let html = `<div class="message message-bot"><div class="message-avatar">🤖</div><div>`;
+      html += `<div class="message-bubble" style="background:#F0FDF4;border-left:4px solid var(--primary)">`;
+      html += `✅ <strong>Prescription Verified!</strong><br>`;
+      html += `Your prescription for ${escapeHtml(medicineName)} has been verified successfully.`;
+      html += `</div>`;
+      
+      if (data.prescription_submission_id) {
+        html += `<p style="font-size:0.78rem;margin-top:8px;color:var(--primary)"><strong>Submission ID:</strong> ${data.prescription_submission_id}</p>`;
+      }
+      
+      html += `<button class="btn btn-primary btn-sm mt-1" onclick="confirmChatOrder(${medicineId}, '${escapeHtml(medicineName)}', 1)">🛒 Add to Cart & Order</button>`;
+      html += `${speakerBtnHtml()}`;
+      html += `</div></div>`;
+      chatMessages.innerHTML += html;
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    } else {
+      let html = `<div class="message message-bot"><div class="message-avatar">🤖</div><div>`;
+      html += `<div class="message-bubble" style="background:#FEF2F2;border-left:4px solid var(--danger)">`;
+      html += `❌ <strong>Prescription Not Readable</strong><br>`;
+      html += `${escapeHtml(data.message || 'The prescription file could not be read clearly. Please try again with a clearer image.')}<br><br>`;
+      html += `A pharmacist will review your submission shortly.`;
+      html += `</div>`;
+      html += `${speakerBtnHtml()}`;
+      html += `</div></div>`;
+      chatMessages.innerHTML += html;
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+  } catch (err) {
+    console.error('Upload error:', err);
+    showToast('Error uploading prescription. Please try again.', 'error');
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = '✅ Upload & Verify';
   }
 }
 

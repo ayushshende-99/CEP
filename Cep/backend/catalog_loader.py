@@ -10,7 +10,7 @@ from statistics import mean
 
 
 MEDICINE_DATASET_ENV = "MEDICINE_DATASET_PATH"
-MEDICINE_DATASET_FILENAME = "medicine_dataset_with_price.csv"
+MEDICINE_DATASET_FILENAME = "dataset_with_severity_and_prescription.csv"
 
 BOOLEAN_TRUE_VALUES = {"1", "true", "yes", "y"}
 

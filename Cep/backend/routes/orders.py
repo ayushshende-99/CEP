@@ -20,7 +20,8 @@ def place_order(current_user):
         user_id=current_user.id,
         cart_items=data['items'],
         shipping_address=data.get('address', ''),
-        payment_method=data.get('payment_method', 'Cash on Delivery')
+        payment_method=data.get('payment_method', 'Cash on Delivery'),
+        prescription_submission_id=data.get('prescription_submission_id'),
     )
 
     if result['success']:

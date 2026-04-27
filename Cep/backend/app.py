@@ -5,8 +5,9 @@ Smart Agentic Medical Advisor & Pharmacy - Main Flask Application
 from flask import Flask, send_from_directory
 from flask_cors import CORS
 from config import Config
-from models import db, User, Medicine
+from models import db, User, Medicine, SymptomKnowledge, DiseaseMedicine
 from catalog_loader import load_medicine_catalog
+from knowledge_loader import load_symptom_knowledge
 import os
 
 
@@ -89,6 +90,10 @@ def medicine_catalog_needs_refresh():
     return any(name in LEGACY_CATALOG_MARKERS for name in current_names)
 
 
+def symptom_knowledge_needs_refresh():
+    return SymptomKnowledge.query.count() == 0 or DiseaseMedicine.query.count() == 0
+
+
 def refresh_medicine_catalog():
     """Load the medicine catalog from the dataset and replace the legacy seed data."""
     catalog_rows, dataset_path = load_medicine_catalog()
@@ -115,6 +120,19 @@ def seed_data():
             print(f"[WARN] {error}. Keeping the existing medicine catalog.")
     else:
         print("[OK] Medicine catalog already initialized; keeping existing records.")
+
+    if symptom_knowledge_needs_refresh():
+        try:
+            stats, dataset_path = load_symptom_knowledge()
+            print(
+                "[OK] Imported symptom knowledge "
+                f"({stats['symptom_rows']} symptom rows, {stats['disease_medicine_rows']} disease-medicine rows) "
+                f"from dataset: {dataset_path}"
+            )
+        except FileNotFoundError as error:
+            print(f"[WARN] {error}. Symptom workflow endpoints may have limited coverage.")
+    else:
+        print("[OK] Symptom knowledge already initialized; keeping existing records.")
 
     db.session.commit()
     print("[OK] Database seeded successfully!")
